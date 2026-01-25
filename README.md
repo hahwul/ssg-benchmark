@@ -11,6 +11,15 @@ This repository is for benchmarking Static Site Generators (SSGs), primarily to 
 - Build time for various site sizes.
 - Memory/CPU usage.
 
+## Targets
+
+* hwaro
+* jekyll
+* hugo
+* zola
+* blades
+* etc..
+
 ## Setup & Run
 
 > TODO
