@@ -18,7 +18,7 @@ This repository is for benchmarking Static Site Generators (SSGs), primarily to 
 
 | SSG | Language | Description |
 |-----|----------|-------------|
-| [hwaro](https://github.com/hahwul/hwaro) | Rust | My personal SSG project |
+| [hwaro](https://github.com/hahwul/hwaro) | Lightweight and fast static site generator |  |
 | [Hugo](https://gohugo.io/) | Go | The world's fastest framework for building websites |
 | [Zola](https://www.getzola.org/) | Rust | A fast static site generator in a single binary |
 | [Jekyll](https://jekyllrb.com/) | Ruby | Transform your plain text into static websites |
