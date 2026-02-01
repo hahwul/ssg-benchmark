@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="section">
+    <h1>{{ section.title | default(value="Posts") }}</h1>
+
+    {% if section.description %}
+    <p class="description">{{ section.description }}</p>
+    {% endif %}
+
+    <ul class="posts-list">
+    {% for page in section.pages %}
+        <li>
+            <a href="{{ page.permalink }}">{{ page.title }}</a>
+            {% if page.date %}
+            <time datetime="{{ page.date | date(format="%Y-%m-%d") }}">
+                {{ page.date | date(format="%B %d, %Y") }}
+            </time>
+            {% endif %}
+        </li>
+    {% endfor %}
+    </ul>
+</section>
+{% endblock content %}

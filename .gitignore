@@ -1,0 +1,58 @@
+# Build outputs
+sites/*/public/
+sites/*/_site/
+sites/*/output/
+sites/*/build/
+sites/*/dist/
+
+# Generated content (keep templates, ignore generated posts)
+sites/hugo/content/posts/*.md
+!sites/hugo/content/posts/.gitkeep
+sites/zola/content/posts/*.md
+!sites/zola/content/posts/_index.md
+sites/jekyll/_posts/*.md
+!sites/jekyll/_posts/.gitkeep
+sites/blades/content/*.md
+!sites/blades/content/.gitkeep
+sites/hwaro/content/posts/*.md
+!sites/hwaro/content/posts/.gitkeep
+
+# Benchmark results (optional - you may want to keep these)
+# Uncomment to ignore results
+# results/
+
+# Temporary files
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
+
+# Ruby/Jekyll
+sites/jekyll/.bundle/
+sites/jekyll/vendor/
+sites/jekyll/Gemfile.lock
+.sass-cache/
+_sass/.sass-cache/
+
+# Node (if any SSG uses it)
+node_modules/
+package-lock.json
+yarn.lock
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Docker
+.docker/
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="taxonomy-single">
+    <h1>{{ term.name }}</h1>
+
+    <p>{{ term.pages | length }} post(s) tagged with "{{ term.name }}"</p>
+
+    <ul class="posts-list">
+    {% for page in term.pages %}
+        <li>
+            <a href="{{ page.permalink }}">{{ page.title }}</a>
+            {% if page.date %}
+            <time datetime="{{ page.date | date(format="%Y-%m-%d") }}">
+                {{ page.date | date(format="%B %d, %Y") }}
+            </time>
+            {% endif %}
+        </li>
+    {% endfor %}
+    </ul>
+</section>
+{% endblock content %}

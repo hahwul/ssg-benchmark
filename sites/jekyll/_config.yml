@@ -1,0 +1,34 @@
+# Jekyll Configuration for SSG Benchmark
+
+title: SSG Benchmark Site
+description: Test site for benchmarking static site generators
+baseurl: ""
+url: ""
+
+# Build settings
+markdown: kramdown
+permalink: /:title/
+
+# Exclude from processing
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - README.md
+
+# Performance settings
+incremental: false
+profile: false
+
+# Collections
+collections:
+  posts:
+    output: true
+    permalink: /posts/:title/
+
+# Defaults
+defaults:
+  - scope:
+      path: ""
+      type: "posts"
+    values:
+      layout: "post"

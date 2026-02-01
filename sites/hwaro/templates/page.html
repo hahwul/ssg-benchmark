@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page.title }} | {{ site.title }}</title>
+    <meta name="description" content="{{ page.description | default: site.description }}">
+</head>
+<body>
+    <header>
+        <h1><a href="/">{{ site.title }}</a></h1>
+    </header>
+
+    <main>
+        <article>
+            <header>
+                <h1>{{ page.title }}</h1>
+                {% if page.date %}
+                <time datetime="{{ page.date }}">{{ page.date }}</time>
+                {% endif %}
+                {% if page.tags %}
+                <div class="tags">
+                    {% for tag in page.tags %}
+                    <span class="tag">{{ tag }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </header>
+
+            <div class="content">
+                {{ content }}
+            </div>
+        </article>
+    </main>
+
+    <footer>
+        <p>&copy; SSG Benchmark</p>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,51 @@
+# Dockerfile for Hwaro SSG
+# https://github.com/hahwul/hwaro
+# Based on official Hwaro Dockerfile
+
+##= BUILDER =##
+FROM 84codes/crystal:latest-debian-13 AS builder
+
+LABEL maintainer="SSG Benchmark"
+LABEL description="Hwaro SSG benchmark environment"
+
+WORKDIR /hwaro
+
+# Install build dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    zlib1g-dev \
+    pkg-config \
+    git \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Clone and build hwaro
+RUN git clone https://github.com/hahwul/hwaro.git . && \
+    shards install --production && \
+    shards build --release --no-debug --production
+
+##= RUNNER =##
+FROM debian:13-slim
+
+# Set default locale for the environment
+ENV LC_ALL=C.UTF-8
+ENV LANG=en_US.UTF-8
+ENV LANGUAGE=en_US.UTF-8
+
+# Install runtime dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    libxml2 \
+    zlib1g \
+    libyaml-0-2 \
+    bash \
+    coreutils \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Copy hwaro binary from builder
+COPY --from=builder /hwaro/bin/hwaro /usr/local/bin/hwaro
+
+# Set working directory
+WORKDIR /site
+
+# Default command
+CMD ["hwaro", "build"]

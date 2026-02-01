@@ -1,0 +1,35 @@
+# Zola Configuration for SSG Benchmark
+# https://www.getzola.org/documentation/getting-started/configuration/
+
+# The base URL of the site
+base_url = "https://example.com"
+
+# The site title
+title = "SSG Benchmark - Zola"
+
+# The site description
+description = "A benchmark site for testing Zola build performance"
+
+# The default language
+default_language = "en"
+
+# Whether to compile Sass
+compile_sass = false
+
+# Whether to build the search index
+build_search_index = false
+
+# Whether to minify HTML
+minify_html = false
+
+# Whether to generate feeds
+generate_feeds = false
+
+# Taxonomies
+taxonomies = [
+    { name = "tags", feed = false },
+]
+
+[extra]
+# Custom variables can go here
+author = "Benchmark"

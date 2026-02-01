@@ -1,0 +1,15 @@
+# Blades Configuration File
+# https://github.com/grego/blades
+
+[site]
+title = "SSG Benchmark Site"
+description = "A benchmark site for testing Blades performance"
+url = "https://example.com"
+author = "Benchmark"
+
+[build]
+output_dir = "public"
+
+[taxonomies]
+tags = "tags"
+categories = "categories"

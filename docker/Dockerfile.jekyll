@@ -1,0 +1,19 @@
+FROM ruby:3.2-slim
+
+LABEL maintainer="SSG Benchmark"
+LABEL description="Jekyll SSG Benchmark Environment"
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Jekyll and Bundler
+RUN gem install jekyll bundler
+
+# Set working directory
+WORKDIR /site
+
+# Default command
+CMD ["bundle", "exec", "jekyll", "build"]

@@ -1,0 +1,16 @@
+FROM alpine:3.19
+
+LABEL maintainer="SSG Benchmark"
+LABEL description="Hugo SSG Benchmark Environment"
+
+# Install dependencies (Alpine doesn't have 'time' package, use busybox time)
+RUN apk add --no-cache \
+    hugo \
+    bash \
+    coreutils
+
+# Set working directory
+WORKDIR /site
+
+# Default command
+CMD ["hugo", "--minify"]

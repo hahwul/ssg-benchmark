@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="posts">
+    <h1>{{ config.title }}</h1>
+    <p>{{ config.description }}</p>
+
+    {% if paginator %}
+        {% for page in paginator.pages %}
+        <article class="post-summary">
+            <h2><a href="{{ page.permalink }}">{{ page.title }}</a></h2>
+            {% if page.date %}
+            <time datetime="{{ page.date | date(format="%Y-%m-%d") }}">
+                {{ page.date | date(format="%B %d, %Y") }}
+            </time>
+            {% endif %}
+            {% if page.summary %}
+            <p>{{ page.summary | safe }}</p>
+            {% endif %}
+        </article>
+        {% endfor %}
+    {% else %}
+        {% set section = get_section(path="posts/_index.md", metadata_only=true) %}
+        {% for page in section.pages %}
+        <article class="post-summary">
+            <h2><a href="{{ page.permalink }}">{{ page.title }}</a></h2>
+            {% if page.date %}
+            <time datetime="{{ page.date | date(format="%Y-%m-%d") }}">
+                {{ page.date | date(format="%B %d, %Y") }}
+            </time>
+            {% endif %}
+        </article>
+        {% endfor %}
+    {% endif %}
+</section>
+{% endblock content %}

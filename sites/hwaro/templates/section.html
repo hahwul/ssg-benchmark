@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ section.title }} - {{ site.title }}</title>
+    <meta name="description" content="{{ section.description | default: site.description }}">
+</head>
+<body>
+    <header>
+        <h1><a href="/">{{ site.title }}</a></h1>
+    </header>
+
+    <main>
+        <section>
+            <h1>{{ section.title }}</h1>
+            {% if section.description %}
+            <p>{{ section.description }}</p>
+            {% endif %}
+
+            <ul class="posts-list">
+            {% for page in section.pages %}
+                <li>
+                    <a href="{{ page.permalink }}">{{ page.title }}</a>
+                    {% if page.date %}
+                    <time datetime="{{ page.date }}">{{ page.date }}</time>
+                    {% endif %}
+                </li>
+            {% endfor %}
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; SSG Benchmark</p>
+    </footer>
+</body>
+</html>

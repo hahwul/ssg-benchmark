@@ -1,0 +1,31 @@
+FROM debian:bookworm-slim
+
+LABEL maintainer="SSG Benchmark"
+LABEL description="Zola SSG benchmark environment"
+
+# Install dependencies and download Zola binary
+RUN apt-get update && apt-get install -y \
+    bash \
+    coreutils \
+    curl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/* \
+    && ZOLA_VERSION="0.22.1" \
+    && ARCH=$(dpkg --print-architecture) \
+    && case "$ARCH" in \
+        amd64) ZOLA_ARCH="x86_64-unknown-linux-gnu" ;; \
+        arm64) ZOLA_ARCH="aarch64-unknown-linux-gnu" ;; \
+        *) echo "Unsupported architecture: $ARCH" && exit 1 ;; \
+    esac \
+    && echo "Downloading Zola for $ZOLA_ARCH" \
+    && curl -sL "https://github.com/getzola/zola/releases/download/v${ZOLA_VERSION}/zola-v${ZOLA_VERSION}-${ZOLA_ARCH}.tar.gz" -o /tmp/zola.tar.gz \
+    && tar -xzf /tmp/zola.tar.gz -C /usr/local/bin \
+    && rm /tmp/zola.tar.gz \
+    && chmod +x /usr/local/bin/zola \
+    && zola --version
+
+# Set working directory
+WORKDIR /site
+
+# Default command
+CMD ["zola", "build"]

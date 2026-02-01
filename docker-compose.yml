@@ -1,0 +1,115 @@
+# Docker Compose for SSG Benchmark
+# Provides isolated environments for each Static Site Generator
+
+version: '3.8'
+
+services:
+  # Hugo - The world's fastest framework for building websites
+  hugo:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.hugo
+    image: ssg-benchmark-hugo
+    container_name: ssg-bench-hugo
+    volumes:
+      - ./sites/hugo:/site:rw
+      - ./results:/results:rw
+    working_dir: /site
+    environment:
+      - HUGO_ENV=production
+    command: ["hugo", "--minify"]
+    mem_limit: 4g
+    cpus: 2
+
+  # Zola - A fast static site generator in a single binary
+  zola:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.zola
+    image: ssg-benchmark-zola
+    container_name: ssg-bench-zola
+    volumes:
+      - ./sites/zola:/site:rw
+      - ./results:/results:rw
+    working_dir: /site
+    command: ["zola", "build"]
+    mem_limit: 4g
+    cpus: 2
+
+  # Jekyll - Transform your plain text into static websites
+  jekyll:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.jekyll
+    image: ssg-benchmark-jekyll
+    container_name: ssg-bench-jekyll
+    volumes:
+      - ./sites/jekyll:/site:rw
+      - ./results:/results:rw
+    working_dir: /site
+    environment:
+      - JEKYLL_ENV=production
+    command: ["bundle", "exec", "jekyll", "build"]
+    mem_limit: 4g
+    cpus: 2
+
+  # Blades - A fast & flexible static site generator
+  blades:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.blades
+    image: ssg-benchmark-blades
+    container_name: ssg-bench-blades
+    volumes:
+      - ./sites/blades:/site:rw
+      - ./results:/results:rw
+    working_dir: /site
+    command: ["blades"]
+    mem_limit: 4g
+    cpus: 2
+
+  # Hwaro - Rust-based static site generator
+  hwaro:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.hwaro
+    image: ssg-benchmark-hwaro
+    container_name: ssg-bench-hwaro
+    volumes:
+      - ./sites/hwaro:/site:rw
+      - ./results:/results:rw
+    working_dir: /site
+    command: ["hwaro", "build"]
+    mem_limit: 4g
+    cpus: 2
+
+  # Benchmark runner service
+  benchmark-runner:
+    image: alpine:3.19
+    container_name: ssg-bench-runner
+    volumes:
+      - ./scripts:/scripts:ro
+      - ./sites:/sites:rw
+      - ./results:/results:rw
+      - ./docker:/docker:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    working_dir: /scripts
+    environment:
+      - USE_DOCKER=true
+      - ITERATIONS=3
+      - PAGE_COUNTS=10 100 1000 5000
+      - SSGS=hugo zola jekyll blades hwaro
+    depends_on:
+      - hugo
+      - zola
+      - jekyll
+      - blades
+      - hwaro
+    command: ["sh", "-c", "apk add --no-cache bash docker-cli && bash /scripts/benchmark.sh"]
+    profiles:
+      - benchmark
+
+networks:
+  default:
+    name: ssg-benchmark-network
+    driver: bridge
