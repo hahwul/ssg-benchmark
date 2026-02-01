@@ -9,6 +9,13 @@
             {{ page.date | date(format="%B %d, %Y") }}
         </time>
         {% endif %}
+        {% if page.taxonomies.tags %}
+        <div class="tags">
+            {% for tag in page.taxonomies.tags %}
+            <span class="tag">{{ tag }}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
     </header>
     <div class="content">
         {{ page.content | safe }}

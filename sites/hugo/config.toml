@@ -1,6 +1,6 @@
 # Hugo Site Configuration for Benchmark
 
-baseURL = "http://localhost:1313/"
+baseURL = "http://example.com/"
 languageCode = "en-us"
 title = "SSG Benchmark Site"
 
@@ -11,11 +11,10 @@ buildExpired = false
 
 # Performance settings
 enableGitInfo = false
-enableRobotsTXT = true
-disableKinds = ["taxonomy", "term"]
+enableRobotsTXT = false
 
 [params]
-  description = "A benchmark site for testing SSG performance"
+  description = "Benchmark site for testing SSG performance"
 
 [markup]
   [markup.goldmark]

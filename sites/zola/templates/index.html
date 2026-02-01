@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-<section class="posts">
+<section class="home">
     <h1>{{ config.title }}</h1>
     <p>{{ config.description }}</p>
 
@@ -21,7 +21,7 @@
         {% endfor %}
     {% else %}
         {% set section = get_section(path="posts/_index.md", metadata_only=true) %}
-        {% for page in section.pages %}
+        {% for page in section.pages | slice(end=10) %}
         <article class="post-summary">
             <h2><a href="{{ page.permalink }}">{{ page.title }}</a></h2>
             {% if page.date %}
