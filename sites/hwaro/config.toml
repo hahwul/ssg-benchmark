@@ -2,9 +2,9 @@
 # Site Configuration for SSG Benchmark
 # =============================================================================
 
-title = "SSG Benchmark - Hwaro"
-description = "A benchmark site for testing Hwaro build performance"
-base_url = ""
+title = "SSG Benchmark Site"
+description = "Benchmark site for testing SSG performance"
+base_url = "http://example.com"
 
 # =============================================================================
 # Plugins

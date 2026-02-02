@@ -1,9 +1,9 @@
 # Jekyll Configuration for SSG Benchmark
 
 title: SSG Benchmark Site
-description: Test site for benchmarking static site generators
+description: Benchmark site for testing SSG performance
 baseurl: ""
-url: ""
+url: "http://example.com"
 
 # Build settings
 markdown: kramdown
