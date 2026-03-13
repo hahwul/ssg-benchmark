@@ -16,6 +16,13 @@ sites/blades/content/*.md
 !sites/blades/content/.gitkeep
 sites/hwaro/content/posts/*.md
 !sites/hwaro/content/posts/.gitkeep
+sites/eleventy/posts/*.md
+!sites/eleventy/posts/.gitkeep
+sites/pelican/content/*.md
+!sites/pelican/content/.gitkeep
+sites/hexo/source/_posts/*.md
+!sites/hexo/source/_posts/.gitkeep
+sites/hexo/db.json
 
 # Benchmark results (optional - you may want to keep these)
 # Uncomment to ignore results

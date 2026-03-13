@@ -34,7 +34,7 @@ usage() {
     echo "Usage: $0 [OPTIONS]"
     echo ""
     echo "Options:"
-    echo "  -s, --ssg NAME        SSG name (hugo, zola, jekyll, blades, hwaro)"
+    echo "  -s, --ssg NAME        SSG name (hugo, zola, jekyll, blades, hwaro, eleventy, pelican, hexo)"
     echo "  -c, --count N         Number of pages to generate (default: 100)"
     echo "  -o, --output DIR      Output directory for generated content"
     echo "  -h, --help            Show this help message"
@@ -504,6 +504,151 @@ EOF
     log_success "Generated ${COUNT} Hwaro posts in ${content_dir}"
 }
 
+# Generate content for Eleventy
+generate_eleventy_content() {
+    local content_dir="${OUTPUT_DIR}/posts"
+    mkdir -p "$content_dir"
+
+    log "Generating ${COUNT} Eleventy posts..."
+
+    # Create directory data file for auto-tagging
+    if [ ! -f "${content_dir}/posts.json" ]; then
+        cat > "${content_dir}/posts.json" << 'EOF'
+{
+  "layout": "post.njk",
+  "tags": "post"
+}
+EOF
+    fi
+
+    for i in $(seq 1 $COUNT); do
+        local date=$(generate_date $i)
+        local title=$(generate_title $i)
+        local slug="post-${i}"
+        local filename="${content_dir}/${slug}.md"
+
+        cat > "$filename" << EOF
+---
+title: "${title}"
+date: ${date}
+tags: ["benchmark", "test"]
+---
+
+# ${title}
+
+$(generate_content)
+
+## Section One
+
+$(generate_content)
+
+## Section Two
+
+$(generate_content)
+
+## Conclusion
+
+$(generate_paragraph)
+EOF
+    done
+
+    log_success "Generated ${COUNT} Eleventy posts in ${content_dir}"
+}
+
+# Generate content for Pelican
+generate_pelican_content() {
+    local content_dir="${OUTPUT_DIR}/content"
+    mkdir -p "$content_dir"
+
+    log "Generating ${COUNT} Pelican articles..."
+
+    for i in $(seq 1 $COUNT); do
+        local date=$(generate_date $i)
+        local title=$(generate_title $i)
+        local slug="post-${i}"
+        local filename="${content_dir}/${slug}.md"
+
+        # Pelican uses its own native metadata format (not YAML frontmatter)
+        cat > "$filename" << EOF
+Title: ${title}
+Date: ${date}
+Category: benchmark
+Tags: benchmark, test
+Slug: ${slug}
+
+# ${title}
+
+$(generate_content)
+
+## Section One
+
+$(generate_content)
+
+## Section Two
+
+$(generate_content)
+
+## Conclusion
+
+$(generate_paragraph)
+EOF
+    done
+
+    log_success "Generated ${COUNT} Pelican articles in ${content_dir}"
+}
+
+# Generate content for Hexo
+generate_hexo_content() {
+    local content_dir="${OUTPUT_DIR}/source/_posts"
+    mkdir -p "$content_dir"
+
+    log "Generating ${COUNT} Hexo posts..."
+
+    # Install npm dependencies if package.json exists (before build timing)
+    if [ -f "${OUTPUT_DIR}/package.json" ] && [ ! -d "${OUTPUT_DIR}/node_modules" ]; then
+        log "Installing Hexo npm dependencies..."
+        cd "$OUTPUT_DIR" && npm install --silent 2>/dev/null || npm install
+        cd - > /dev/null
+    fi
+
+    for i in $(seq 1 $COUNT); do
+        local date=$(generate_date $i)
+        local title=$(generate_title $i)
+        local slug="post-${i}"
+        local filename="${content_dir}/${slug}.md"
+
+        cat > "$filename" << EOF
+---
+title: "${title}"
+date: ${date}
+tags:
+  - benchmark
+  - test
+categories:
+  - benchmark
+---
+
+# ${title}
+
+$(generate_content)
+
+## Section One
+
+$(generate_content)
+
+## Section Two
+
+$(generate_content)
+
+## Conclusion
+
+$(generate_paragraph)
+EOF
+    done
+
+    log_success "Generated ${COUNT} Hexo posts in ${content_dir}"
+}
+
 # Main execution
 main() {
     log "Content Generator for SSG Benchmark"
@@ -527,9 +672,18 @@ main() {
         hwaro)
             generate_hwaro_content
             ;;
+        eleventy)
+            generate_eleventy_content
+            ;;
+        pelican)
+            generate_pelican_content
+            ;;
+        hexo)
+            generate_hexo_content
+            ;;
         *)
             log_error "Unknown SSG: ${SSG}"
-            log_error "Supported SSGs: hugo, zola, jekyll, blades, hwaro"
+            log_error "Supported SSGs: hugo, zola, jekyll, blades, hwaro, eleventy, pelican, hexo"
             exit 1
             ;;
     esac

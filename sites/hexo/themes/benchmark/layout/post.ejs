@@ -1,0 +1,18 @@
+<article>
+    <header>
+        <h1><%= page.title %></h1>
+        <time datetime="<%= date(page.date, 'YYYY-MM-DD') %>">
+            <%= date(page.date, 'MMMM DD, YYYY') %>
+        </time>
+        <% if (page.tags && page.tags.length) { %>
+        <div class="tags">
+            <% page.tags.forEach(function(tag) { %>
+            <span class="tag"><%= tag.name %></span>
+            <% }); %>
+        </div>
+        <% } %>
+    </header>
+    <div class="content">
+        <%- page.content %>
+    </div>
+</article>

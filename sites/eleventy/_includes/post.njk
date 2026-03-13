@@ -1,0 +1,23 @@
+---
+layout: default.njk
+---
+<article>
+    <header>
+        <h1>{{ title }}</h1>
+        {% if date %}
+        <time datetime="{{ date | date: '%Y-%m-%d' }}">
+            {{ date | date: '%B %d, %Y' }}
+        </time>
+        {% endif %}
+        {% if tags %}
+        <div class="tags">
+            {% for tag in tags %}
+            <span class="tag">{{ tag }}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </header>
+    <div class="content">
+        {{ content | safe }}
+    </div>
+</article>

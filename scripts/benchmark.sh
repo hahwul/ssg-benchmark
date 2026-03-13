@@ -38,7 +38,7 @@ DOCKER_DIR="${PROJECT_DIR}/docker"
 # Benchmark settings
 DEFAULT_PAGE_COUNTS="10 100 1000 5000"
 DEFAULT_ITERATIONS=3
-DEFAULT_SSGS="hugo zola jekyll blades hwaro"
+DEFAULT_SSGS="hugo zola jekyll blades hwaro eleventy pelican hexo"
 
 # Parse command line arguments
 PAGE_COUNTS="${PAGE_COUNTS:-$DEFAULT_PAGE_COUNTS}"
@@ -52,7 +52,7 @@ usage() {
     echo ""
     echo "Options:"
     echo "  -s, --ssgs LIST          Comma-separated list of SSGs to benchmark"
-    echo "                           (default: hugo,zola,jekyll,blades,hwaro)"
+    echo "                           (default: hugo,zola,jekyll,blades,hwaro,eleventy,pelican,hexo)"
     echo "  -p, --pages LIST         Comma-separated list of page counts"
     echo "                           (default: 10,100,1000,5000)"
     echo "  -i, --iterations N       Number of iterations per benchmark (default: 3)"
@@ -251,6 +251,15 @@ run_docker_benchmark() {
         hwaro)
             build_cmd="hwaro build"
             ;;
+        eleventy)
+            build_cmd="eleventy"
+            ;;
+        pelican)
+            build_cmd="pelican content -s pelicanconf.py"
+            ;;
+        hexo)
+            build_cmd="hexo generate"
+            ;;
         *)
             build_cmd="${ssg} build"
             ;;
@@ -322,6 +331,15 @@ run_local_benchmark() {
             ;;
         hwaro)
             build_cmd="hwaro build"
+            ;;
+        eleventy)
+            build_cmd="eleventy"
+            ;;
+        pelican)
+            build_cmd="pelican content -s pelicanconf.py"
+            ;;
+        hexo)
+            build_cmd="hexo generate"
             ;;
         *)
             build_cmd="${ssg} build"

@@ -1,8 +1,11 @@
 const SSG_META = {
-  hugo:   { color: '#FF4088', lang: 'Go',     desc: 'The world\'s fastest framework for building websites' },
-  zola:   { color: '#2B7489', lang: 'Rust',   desc: 'A fast static site generator in a single binary' },
-  jekyll: { color: '#CC0000', lang: 'Ruby',   desc: 'Transform your plain text into static websites and blogs' },
-  hwaro:  { color: '#4A90D9', lang: 'Rust',   desc: 'A lightweight static site generator' }
+  hugo:     { color: '#FF4088', lang: 'Go',      desc: 'The world\'s fastest framework for building websites' },
+  zola:     { color: '#2B7489', lang: 'Rust',    desc: 'A fast static site generator in a single binary' },
+  jekyll:   { color: '#CC0000', lang: 'Ruby',    desc: 'Transform your plain text into static websites and blogs' },
+  hwaro:    { color: '#222222', lang: 'Crystal', desc: 'A lightweight static site generator' },
+  eleventy: { color: '#FFD700', lang: 'Node.js', desc: 'A simpler static site generator' },
+  pelican:  { color: '#328484', lang: 'Python',  desc: 'A static site generator powered by Python' },
+  hexo:     { color: '#0E83CD', lang: 'Node.js', desc: 'A fast, simple & powerful blog framework' }
 };
 
 let DATA = null;

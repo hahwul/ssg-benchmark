@@ -1,0 +1,16 @@
+<section class="home">
+    <h1><%= config.title %></h1>
+    <p><%= config.description %></p>
+
+    <h2>Recent Posts</h2>
+    <ul class="posts-list">
+    <% page.posts.sort('date', -1).limit(10).each(function(post) { %>
+        <li>
+            <a href="<%- url_for(post.path) %>"><%= post.title %></a>
+            <time datetime="<%= date(post.date, 'YYYY-MM-DD') %>">
+                <%= date(post.date, 'MMMM DD, YYYY') %>
+            </time>
+        </li>
+    <% }); %>
+    </ul>
+</section>

@@ -1,0 +1,19 @@
+FROM node:20-slim
+
+LABEL maintainer="SSG Benchmark"
+LABEL description="Eleventy SSG Benchmark Environment"
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    bash \
+    coreutils \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Eleventy globally
+RUN npm install -g @11ty/eleventy
+
+# Set working directory
+WORKDIR /site
+
+# Default command
+CMD ["eleventy"]

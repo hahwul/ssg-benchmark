@@ -54,6 +54,15 @@ detect_build_command() {
         hwaro)
             echo "hwaro build"
             ;;
+        eleventy)
+            echo "eleventy"
+            ;;
+        pelican)
+            echo "pelican content -s pelicanconf.py"
+            ;;
+        hexo)
+            echo "hexo generate"
+            ;;
         *)
             # Try to auto-detect based on config files
             if [ -f "config.toml" ] || [ -f "config.yaml" ]; then
@@ -63,7 +72,15 @@ detect_build_command() {
                     echo "zola build"
                 fi
             elif [ -f "_config.yml" ]; then
-                echo "bundle exec jekyll build"
+                if grep -q "hexo" _config.yml 2>/dev/null || [ -f "package.json" ]; then
+                    echo "hexo generate"
+                else
+                    echo "bundle exec jekyll build"
+                fi
+            elif [ -f ".eleventy.js" ] || [ -f "eleventy.config.js" ]; then
+                echo "eleventy"
+            elif [ -f "pelicanconf.py" ]; then
+                echo "pelican content -s pelicanconf.py"
             elif [ -f "Blades.toml" ]; then
                 echo "blades"
             elif [ -f "hwaro.toml" ]; then
@@ -199,12 +216,17 @@ EOF
     log_success "Benchmark completed successfully!"
 }
 
-# Install dependencies if needed (for Jekyll)
+# Install dependencies if needed
 install_dependencies() {
     if [ -f "$SITE_DIR/Gemfile" ]; then
         log "Installing Ruby dependencies..."
         cd "$SITE_DIR"
         bundle install --quiet 2>/dev/null || bundle install
+    fi
+    if [ -f "$SITE_DIR/package.json" ] && [ ! -d "$SITE_DIR/node_modules" ]; then
+        log "Installing Node.js dependencies..."
+        cd "$SITE_DIR"
+        npm install --silent 2>/dev/null || npm install
     fi
 }
 

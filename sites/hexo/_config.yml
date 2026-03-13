@@ -1,0 +1,41 @@
+# Hexo Configuration for SSG Benchmark
+
+title: SSG Benchmark Site
+subtitle: Benchmark site for testing SSG performance
+description: Benchmark site for testing SSG performance
+author: SSG Benchmark
+language: en
+timezone: UTC
+
+# URL
+url: http://example.com
+root: /
+permalink: :title/
+
+# Directory
+source_dir: source
+public_dir: public
+
+# Writing
+new_post_name: :title.md
+default_layout: post
+auto_spacing: false
+titlecase: false
+
+# Category & Tag
+default_category: benchmark
+
+# Pagination
+index_generator:
+  path: ''
+  per_page: 10
+  order_by: -date
+
+# Theme
+theme: benchmark
+
+# Disable unnecessary features
+feed:
+  enable: false
+sitemap:
+  enable: false
