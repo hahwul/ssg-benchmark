@@ -8,15 +8,16 @@ title: SSG Benchmark Site
 
     <h2>Recent Posts</h2>
     <ul class="posts-list">
-    {% for post in collections.post | reverse %}
-        {% if loop.index <= 10 %}
+    {%- set posts = collections.post -%}
+    {%- for post in posts -%}
+        {%- if loop.index0 < 10 %}
         <li>
             <a href="{{ post.url }}">{{ post.data.title }}</a>
-            <time datetime="{{ post.date | date: '%Y-%m-%d' }}">
-                {{ post.date | date: '%B %d, %Y' }}
+            <time datetime="{{ post.date | dateFormat('iso') }}">
+                {{ post.date | dateFormat }}
             </time>
         </li>
-        {% endif %}
-    {% endfor %}
+        {%- endif -%}
+    {%- endfor %}
     </ul>
 </section>
