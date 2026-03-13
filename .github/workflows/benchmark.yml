@@ -131,31 +131,10 @@ jobs:
           LATEST=$(ls -t results/ | grep -v ".gitkeep" | head -1)
 
           if [ -n "$LATEST" ]; then
-            git add "results/${LATEST}/" "public/data.json"
+            git add "results/${LATEST}/" "web/static/data.json"
             git commit -m "chore: add benchmark results ${LATEST}" || echo "No changes to commit"
             git push || echo "Failed to push (might need write permissions)"
           fi
-
-      - name: Upload Pages Artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: public/
-
-  deploy:
-    name: Deploy to GitHub Pages
-    needs: benchmark
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
 
   compare:
     name: Compare with Previous Results

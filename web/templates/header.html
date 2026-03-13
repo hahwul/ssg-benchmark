@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="{{ page.description }}">
+  <title>{{ page.title }} - {{ site.title }}</title>
+  {{ og_all_tags }}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --border: #30363d;
+      --text: #e6edf3;
+      --text-muted: #8b949e;
+      --hugo: #FF4088;
+      --zola: #2B7489;
+      --jekyll: #CC0000;
+      --hwaro: #4A90D9;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; line-height: 1.6; margin: 0; }
+    .site-wrapper { max-width: 1200px; margin: 0 auto; padding: 0 16px; }
+
+    /* Header */
+    .site-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 0; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
+    .site-logo { font-weight: 600; font-size: 1.1rem; color: var(--text); text-decoration: none; }
+    .site-logo:hover { color: var(--hugo); }
+    .site-header nav { display: flex; gap: 16px; }
+    .site-header nav a { color: var(--text-muted); text-decoration: none; font-size: 0.9rem; }
+    .site-header nav a:hover { color: var(--text); }
+
+    /* Footer */
+    .site-footer { margin-top: 40px; padding: 16px 0; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 0.85rem; text-align: center; }
+    .site-footer a { color: var(--text-muted); text-decoration: none; }
+    .site-footer a:hover { color: var(--text); }
+
+    /* Content */
+    .site-main { min-height: calc(100vh - 160px); }
+    h1, h2, h3 { line-height: 1.3; margin-top: 1.5em; margin-bottom: 0.5em; font-weight: 600; }
+    h1 { font-size: 1.75rem; margin-top: 0; }
+    a { color: var(--hugo); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    p { margin: 1em 0; }
+
+    /* Dashboard Components */
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 40px; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; border-left: 4px solid; }
+    .card h3 { font-size: 1.1rem; margin: 0 0 4px 0; }
+    .card .lang { color: var(--text-muted); font-size: 0.8rem; margin-bottom: 8px; }
+    .card .desc { color: var(--text-muted); font-size: 0.85rem; }
+    .card .stat { font-size: 1.4rem; font-weight: 700; margin-top: 8px; }
+    .card .stat small { font-size: 0.7rem; color: var(--text-muted); font-weight: 400; }
+
+    .section { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 24px; margin-bottom: 24px; }
+    .section h2 { font-size: 1.2rem; margin: 0 0 16px 0; }
+    .section .controls { margin-bottom: 16px; display: flex; gap: 8px; flex-wrap: wrap; }
+    .section .controls button { background: var(--bg); color: var(--text-muted); border: 1px solid var(--border); border-radius: 6px; padding: 6px 14px; cursor: pointer; font-size: 0.85rem; transition: all 0.15s; }
+    .section .controls button:hover { border-color: var(--text-muted); }
+    .section .controls button.active { background: var(--border); color: var(--text); border-color: var(--text-muted); }
+    .chart-wrapper { position: relative; height: 400px; }
+
+    .bar-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); gap: 24px; }
+    .bar-grid .chart-wrapper { height: 300px; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+    th { color: var(--text-muted); cursor: pointer; user-select: none; white-space: nowrap; }
+    th:hover { color: var(--text); }
+    th .sort-icon { font-size: 0.7rem; margin-left: 4px; }
+    td { font-variant-numeric: tabular-nums; }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+    .ssg-badge { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+
+    @media (max-width: 600px) {
+      .bar-grid { grid-template-columns: 1fr; }
+      .chart-wrapper { height: 300px; }
+      .site-header { flex-direction: column; gap: 8px; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <div class="site-wrapper">
+    <header class="site-header">
+      <a href="{{ base_url }}/" class="site-logo">{{ site.title }}</a>
+      <nav>
+        <a href="https://github.com/hahwul/ssg-benchmark" target="_blank">GitHub</a>
+      </nav>
+    </header>

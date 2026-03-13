@@ -262,7 +262,10 @@ site:
 	@echo "Generating dashboard site..."
 	@chmod +x $(SCRIPT_DIR)/generate-site.sh
 	@./$(SCRIPT_DIR)/generate-site.sh
-	@echo "Dashboard ready at public/index.html"
+	@cd web && hwaro build
+	@rm -rf site
+	@mv web/public site
+	@echo "Dashboard ready at site/index.html"
 
 # Run with Docker Compose
 compose-build:

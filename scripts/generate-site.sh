@@ -7,10 +7,10 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 RESULTS_DIR="${PROJECT_DIR}/results"
-PUBLIC_DIR="${PROJECT_DIR}/public"
-OUTPUT_FILE="${PUBLIC_DIR}/data.json"
+STATIC_DIR="${PROJECT_DIR}/web/static"
+OUTPUT_FILE="${STATIC_DIR}/data.json"
 
-mkdir -p "$PUBLIC_DIR"
+mkdir -p "$STATIC_DIR"
 
 # Start JSON
 echo '{' > "$OUTPUT_FILE"
