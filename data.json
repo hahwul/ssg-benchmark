@@ -1,0 +1,211 @@
+{
+  "generated": "2026-03-13T04:39:51Z",
+  "runs": [
+    {
+      "id": "20260201_212011",
+      "date": "2026-02-01",
+      "results": [
+        {"ssg": "hugo", "page_count": 10, "avg_time_ms": 601, "min_time_ms": 580, "max_time_ms": 622}        ,
+        {"ssg": "hugo", "page_count": 100, "avg_time_ms": 1454, "min_time_ms": 1363, "max_time_ms": 1545}        ,
+        {"ssg": "hwaro", "page_count": 10, "avg_time_ms": 835, "min_time_ms": 785, "max_time_ms": 885}        ,
+        {"ssg": "hwaro", "page_count": 100, "avg_time_ms": 2720, "min_time_ms": 2719, "max_time_ms": 2721}        ,
+        {"ssg": "jekyll", "page_count": 10, "avg_time_ms": 1647, "min_time_ms": 1490, "max_time_ms": 1805}        ,
+        {"ssg": "jekyll", "page_count": 100, "avg_time_ms": 4954, "min_time_ms": 4076, "max_time_ms": 5832}        ,
+        {"ssg": "zola", "page_count": 10, "avg_time_ms": 825, "min_time_ms": 686, "max_time_ms": 964}        ,
+        {"ssg": "zola", "page_count": 100, "avg_time_ms": 1988, "min_time_ms": 1902, "max_time_ms": 2074}
+      ]
+    }    ,
+    {
+      "id": "20260201_223543",
+      "date": "2026-02-01",
+      "results": [
+        {"ssg": "hugo", "page_count": 10, "avg_time_ms": 776, "min_time_ms": 679, "max_time_ms": 942}        ,
+        {"ssg": "hugo", "page_count": 100, "avg_time_ms": 1634, "min_time_ms": 1570, "max_time_ms": 1685}        ,
+        {"ssg": "hugo", "page_count": 1000, "avg_time_ms": 11248, "min_time_ms": 11156, "max_time_ms": 11311}        ,
+        {"ssg": "hugo", "page_count": 5000, "avg_time_ms": 81326, "min_time_ms": 63871, "max_time_ms": 95383}        ,
+        {"ssg": "hwaro", "page_count": 10, "avg_time_ms": 1507, "min_time_ms": 771, "max_time_ms": 2959}        ,
+        {"ssg": "hwaro", "page_count": 100, "avg_time_ms": 2658, "min_time_ms": 2572, "max_time_ms": 2718}        ,
+        {"ssg": "hwaro", "page_count": 1000, "avg_time_ms": 22382, "min_time_ms": 21995, "max_time_ms": 22788}        ,
+        {"ssg": "hwaro", "page_count": 5000, "avg_time_ms": 122872, "min_time_ms": 116774, "max_time_ms": 129872}        ,
+        {"ssg": "jekyll", "page_count": 10, "avg_time_ms": 3332, "min_time_ms": 1877, "max_time_ms": 6110}        ,
+        {"ssg": "jekyll", "page_count": 100, "avg_time_ms": 6471, "min_time_ms": 5867, "max_time_ms": 7476}        ,
+        {"ssg": "jekyll", "page_count": 1000, "avg_time_ms": 40452, "min_time_ms": 29989, "max_time_ms": 46810}        ,
+        {"ssg": "jekyll", "page_count": 5000, "avg_time_ms": 145105, "min_time_ms": 116479, "max_time_ms": 201974}        ,
+        {"ssg": "zola", "page_count": 10, "avg_time_ms": 2034, "min_time_ms": 746, "max_time_ms": 4491}        ,
+        {"ssg": "zola", "page_count": 100, "avg_time_ms": 1948, "min_time_ms": 1884, "max_time_ms": 2075}        ,
+        {"ssg": "zola", "page_count": 1000, "avg_time_ms": 13254, "min_time_ms": 11433, "max_time_ms": 14646}        ,
+        {"ssg": "zola", "page_count": 5000, "avg_time_ms": 69038, "min_time_ms": 63267, "max_time_ms": 72840}
+      ]
+    }    ,
+    {
+      "id": "20260201_233234",
+      "date": "2026-02-01",
+      "results": [
+        {"ssg": "hugo", "page_count": 10, "avg_time_ms": 853, "min_time_ms": 846, "max_time_ms": 862}        ,
+        {"ssg": "hugo", "page_count": 100, "avg_time_ms": 2051, "min_time_ms": 2002, "max_time_ms": 2112}        ,
+        {"ssg": "hugo", "page_count": 1000, "avg_time_ms": 10972, "min_time_ms": 10643, "max_time_ms": 11245}        ,
+        {"ssg": "hugo", "page_count": 5000, "avg_time_ms": 55480, "min_time_ms": 51036, "max_time_ms": 57732}        ,
+        {"ssg": "hwaro", "page_count": 10, "avg_time_ms": 1215, "min_time_ms": 652, "max_time_ms": 2322}        ,
+        {"ssg": "hwaro", "page_count": 100, "avg_time_ms": 1999, "min_time_ms": 1894, "max_time_ms": 2164}        ,
+        {"ssg": "hwaro", "page_count": 1000, "avg_time_ms": 17171, "min_time_ms": 16661, "max_time_ms": 17528}        ,
+        {"ssg": "hwaro", "page_count": 5000, "avg_time_ms": 122368, "min_time_ms": 117677, "max_time_ms": 130061}        ,
+        {"ssg": "jekyll", "page_count": 10, "avg_time_ms": 2029, "min_time_ms": 1192, "max_time_ms": 3691}        ,
+        {"ssg": "jekyll", "page_count": 100, "avg_time_ms": 3489, "min_time_ms": 3222, "max_time_ms": 3939}        ,
+        {"ssg": "jekyll", "page_count": 1000, "avg_time_ms": 25998, "min_time_ms": 23431, "max_time_ms": 27757}        ,
+        {"ssg": "jekyll", "page_count": 5000, "avg_time_ms": 118039, "min_time_ms": 112647, "max_time_ms": 126281}        ,
+        {"ssg": "zola", "page_count": 10, "avg_time_ms": 1325, "min_time_ms": 666, "max_time_ms": 2632}        ,
+        {"ssg": "zola", "page_count": 100, "avg_time_ms": 1538, "min_time_ms": 1399, "max_time_ms": 1644}        ,
+        {"ssg": "zola", "page_count": 1000, "avg_time_ms": 10007, "min_time_ms": 9802, "max_time_ms": 10158}        ,
+        {"ssg": "zola", "page_count": 5000, "avg_time_ms": 50495, "min_time_ms": 46245, "max_time_ms": 52922}
+      ]
+    }    ,
+    {
+      "id": "20260202_090424",
+      "date": "2026-02-02",
+      "results": [
+        {"ssg": "hugo", "page_count": 10, "avg_time_ms": 399, "min_time_ms": 356, "max_time_ms": 468}        ,
+        {"ssg": "hugo", "page_count": 100, "avg_time_ms": 1042, "min_time_ms": 1034, "max_time_ms": 1050}        ,
+        {"ssg": "hugo", "page_count": 1000, "avg_time_ms": 7723, "min_time_ms": 7368, "max_time_ms": 7974}        ,
+        {"ssg": "hugo", "page_count": 5000, "avg_time_ms": 38210, "min_time_ms": 36881, "max_time_ms": 39610}        ,
+        {"ssg": "hwaro", "page_count": 10, "avg_time_ms": 295, "min_time_ms": 272, "max_time_ms": 309}        ,
+        {"ssg": "hwaro", "page_count": 100, "avg_time_ms": 783, "min_time_ms": 773, "max_time_ms": 800}        ,
+        {"ssg": "hwaro", "page_count": 1000, "avg_time_ms": 6004, "min_time_ms": 5927, "max_time_ms": 6150}        ,
+        {"ssg": "hwaro", "page_count": 5000, "avg_time_ms": 28820, "min_time_ms": 27157, "max_time_ms": 29878}        ,
+        {"ssg": "jekyll", "page_count": 10, "avg_time_ms": 860, "min_time_ms": 659, "max_time_ms": 1224}        ,
+        {"ssg": "jekyll", "page_count": 100, "avg_time_ms": 1564, "min_time_ms": 1341, "max_time_ms": 1996}        ,
+        {"ssg": "jekyll", "page_count": 1000, "avg_time_ms": 9105, "min_time_ms": 8524, "max_time_ms": 10142}        ,
+        {"ssg": "jekyll", "page_count": 5000, "avg_time_ms": 43161, "min_time_ms": 40536, "max_time_ms": 47757}        ,
+        {"ssg": "zola", "page_count": 10, "avg_time_ms": 314, "min_time_ms": 308, "max_time_ms": 318}        ,
+        {"ssg": "zola", "page_count": 100, "avg_time_ms": 678, "min_time_ms": 638, "max_time_ms": 707}        ,
+        {"ssg": "zola", "page_count": 1000, "avg_time_ms": 4294, "min_time_ms": 3979, "max_time_ms": 4658}        ,
+        {"ssg": "zola", "page_count": 5000, "avg_time_ms": 20009, "min_time_ms": 19184, "max_time_ms": 20907}
+      ]
+    }    ,
+    {
+      "id": "20260226_093103",
+      "date": "2026-02-26",
+      "results": [
+        {"ssg": "hugo", "page_count": 10, "avg_time_ms": 457, "min_time_ms": 357, "max_time_ms": 588}        ,
+        {"ssg": "hugo", "page_count": 100, "avg_time_ms": 1054, "min_time_ms": 1018, "max_time_ms": 1086}        ,
+        {"ssg": "hugo", "page_count": 1000, "avg_time_ms": 7977, "min_time_ms": 7617, "max_time_ms": 8631}        ,
+        {"ssg": "hugo", "page_count": 5000, "avg_time_ms": 45248, "min_time_ms": 42547, "max_time_ms": 47851}        ,
+        {"ssg": "hwaro", "page_count": 10, "avg_time_ms": 456, "min_time_ms": 276, "max_time_ms": 753}        ,
+        {"ssg": "hwaro", "page_count": 100, "avg_time_ms": 828, "min_time_ms": 799, "max_time_ms": 850}        ,
+        {"ssg": "hwaro", "page_count": 1000, "avg_time_ms": 6923, "min_time_ms": 5791, "max_time_ms": 8564}        ,
+        {"ssg": "hwaro", "page_count": 5000, "avg_time_ms": 31916, "min_time_ms": 31447, "max_time_ms": 32554}        ,
+        {"ssg": "jekyll", "page_count": 10, "avg_time_ms": 739, "min_time_ms": 620, "max_time_ms": 974}        ,
+        {"ssg": "jekyll", "page_count": 100, "avg_time_ms": 1455, "min_time_ms": 1288, "max_time_ms": 1588}        ,
+        {"ssg": "jekyll", "page_count": 1000, "avg_time_ms": 9677, "min_time_ms": 8845, "max_time_ms": 10655}        ,
+        {"ssg": "jekyll", "page_count": 5000, "avg_time_ms": 49361, "min_time_ms": 42151, "max_time_ms": 57119}        ,
+        {"ssg": "zola", "page_count": 10, "avg_time_ms": 959, "min_time_ms": 340, "max_time_ms": 2171}        ,
+        {"ssg": "zola", "page_count": 100, "avg_time_ms": 648, "min_time_ms": 619, "max_time_ms": 695}        ,
+        {"ssg": "zola", "page_count": 1000, "avg_time_ms": 4315, "min_time_ms": 3812, "max_time_ms": 4652}        ,
+        {"ssg": "zola", "page_count": 5000, "avg_time_ms": 23639, "min_time_ms": 21392, "max_time_ms": 25081}
+      ]
+    }    ,
+    {
+      "id": "20260309_171545",
+      "date": "2026-03-09",
+      "results": [
+        {"ssg": "hugo", "page_count": 10, "avg_time_ms": 457, "min_time_ms": 370, "max_time_ms": 628}        ,
+        {"ssg": "hugo", "page_count": 100, "avg_time_ms": 1074, "min_time_ms": 1069, "max_time_ms": 1083}        ,
+        {"ssg": "hugo", "page_count": 1000, "avg_time_ms": 7877, "min_time_ms": 7687, "max_time_ms": 8048}        ,
+        {"ssg": "hugo", "page_count": 5000, "avg_time_ms": 42486, "min_time_ms": 36451, "max_time_ms": 47331}        ,
+        {"ssg": "hwaro", "page_count": 10, "avg_time_ms": 309, "min_time_ms": 289, "max_time_ms": 343}        ,
+        {"ssg": "hwaro", "page_count": 100, "avg_time_ms": 776, "min_time_ms": 757, "max_time_ms": 814}        ,
+        {"ssg": "hwaro", "page_count": 1000, "avg_time_ms": 7739, "min_time_ms": 7261, "max_time_ms": 8521}        ,
+        {"ssg": "hwaro", "page_count": 5000, "avg_time_ms": 31409, "min_time_ms": 29796, "max_time_ms": 33905}        ,
+        {"ssg": "jekyll", "page_count": 10, "avg_time_ms": 817, "min_time_ms": 617, "max_time_ms": 1209}        ,
+        {"ssg": "jekyll", "page_count": 100, "avg_time_ms": 1722, "min_time_ms": 1326, "max_time_ms": 2210}        ,
+        {"ssg": "jekyll", "page_count": 1000, "avg_time_ms": 12259, "min_time_ms": 10667, "max_time_ms": 13508}        ,
+        {"ssg": "jekyll", "page_count": 5000, "avg_time_ms": 46138, "min_time_ms": 42815, "max_time_ms": 49226}        ,
+        {"ssg": "zola", "page_count": 10, "avg_time_ms": 1544, "min_time_ms": 311, "max_time_ms": 3989}        ,
+        {"ssg": "zola", "page_count": 100, "avg_time_ms": 754, "min_time_ms": 726, "max_time_ms": 789}        ,
+        {"ssg": "zola", "page_count": 1000, "avg_time_ms": 4395, "min_time_ms": 4298, "max_time_ms": 4486}        ,
+        {"ssg": "zola", "page_count": 5000, "avg_time_ms": 20263, "min_time_ms": 19725, "max_time_ms": 21094}
+      ]
+    }    ,
+    {
+      "id": "20260313_074843",
+      "date": "2026-03-13",
+      "results": [
+        {"ssg": "hugo", "page_count": 10, "avg_time_ms": 468, "min_time_ms": 380, "max_time_ms": 642}        ,
+        {"ssg": "hugo", "page_count": 100, "avg_time_ms": 1107, "min_time_ms": 1078, "max_time_ms": 1143}        ,
+        {"ssg": "hugo", "page_count": 1000, "avg_time_ms": 8604, "min_time_ms": 8190, "max_time_ms": 8839}        ,
+        {"ssg": "hugo", "page_count": 5000, "avg_time_ms": 39678, "min_time_ms": 38092, "max_time_ms": 41169}        ,
+        {"ssg": "hwaro", "page_count": 10, "avg_time_ms": 318, "min_time_ms": 310, "max_time_ms": 324}        ,
+        {"ssg": "hwaro", "page_count": 100, "avg_time_ms": 806, "min_time_ms": 766, "max_time_ms": 832}        ,
+        {"ssg": "hwaro", "page_count": 1000, "avg_time_ms": 5886, "min_time_ms": 5710, "max_time_ms": 6038}        ,
+        {"ssg": "hwaro", "page_count": 5000, "avg_time_ms": 29314, "min_time_ms": 28763, "max_time_ms": 29612}        ,
+        {"ssg": "jekyll", "page_count": 10, "avg_time_ms": 740, "min_time_ms": 625, "max_time_ms": 947}        ,
+        {"ssg": "jekyll", "page_count": 100, "avg_time_ms": 1484, "min_time_ms": 1391, "max_time_ms": 1655}        ,
+        {"ssg": "jekyll", "page_count": 1000, "avg_time_ms": 9925, "min_time_ms": 8886, "max_time_ms": 11408}        ,
+        {"ssg": "jekyll", "page_count": 5000, "avg_time_ms": 43354, "min_time_ms": 39447, "max_time_ms": 50842}        ,
+        {"ssg": "zola", "page_count": 10, "avg_time_ms": 377, "min_time_ms": 320, "max_time_ms": 420}        ,
+        {"ssg": "zola", "page_count": 100, "avg_time_ms": 719, "min_time_ms": 710, "max_time_ms": 734}        ,
+        {"ssg": "zola", "page_count": 1000, "avg_time_ms": 4818, "min_time_ms": 4626, "max_time_ms": 4937}        ,
+        {"ssg": "zola", "page_count": 5000, "avg_time_ms": 21530, "min_time_ms": 21518, "max_time_ms": 21549}
+      ]
+    }    ,
+    {
+      "id": "20260313_110059",
+      "date": "2026-03-13",
+      "results": [
+        {"ssg": "hexo", "page_count": 10, "avg_time_ms": 310, "min_time_ms": 301, "max_time_ms": 318}        ,
+        {"ssg": "hexo", "page_count": 100, "avg_time_ms": 314, "min_time_ms": 313, "max_time_ms": 316}        ,
+        {"ssg": "hexo", "page_count": 1000, "avg_time_ms": 288, "min_time_ms": 280, "max_time_ms": 292}        ,
+        {"ssg": "hexo", "page_count": 5000, "avg_time_ms": 400, "min_time_ms": 343, "max_time_ms": 489}        ,
+        {"ssg": "hugo", "page_count": 10, "avg_time_ms": 435, "min_time_ms": 368, "max_time_ms": 538}        ,
+        {"ssg": "hugo", "page_count": 100, "avg_time_ms": 1042, "min_time_ms": 1032, "max_time_ms": 1059}        ,
+        {"ssg": "hugo", "page_count": 1000, "avg_time_ms": 7963, "min_time_ms": 7735, "max_time_ms": 8243}        ,
+        {"ssg": "hugo", "page_count": 5000, "avg_time_ms": 39548, "min_time_ms": 37124, "max_time_ms": 42762}        ,
+        {"ssg": "hwaro", "page_count": 10, "avg_time_ms": 537, "min_time_ms": 307, "max_time_ms": 993}        ,
+        {"ssg": "hwaro", "page_count": 100, "avg_time_ms": 873, "min_time_ms": 828, "max_time_ms": 898}        ,
+        {"ssg": "hwaro", "page_count": 1000, "avg_time_ms": 6251, "min_time_ms": 6146, "max_time_ms": 6319}        ,
+        {"ssg": "hwaro", "page_count": 5000, "avg_time_ms": 31318, "min_time_ms": 30476, "max_time_ms": 31819}        ,
+        {"ssg": "jekyll", "page_count": 10, "avg_time_ms": 932, "min_time_ms": 667, "max_time_ms": 1453}        ,
+        {"ssg": "jekyll", "page_count": 100, "avg_time_ms": 1607, "min_time_ms": 1513, "max_time_ms": 1752}        ,
+        {"ssg": "jekyll", "page_count": 1000, "avg_time_ms": 11293, "min_time_ms": 9796, "max_time_ms": 14035}        ,
+        {"ssg": "jekyll", "page_count": 5000, "avg_time_ms": 45322, "min_time_ms": 43138, "max_time_ms": 49348}        ,
+        {"ssg": "pelican", "page_count": 10, "avg_time_ms": 653, "min_time_ms": 631, "max_time_ms": 683}        ,
+        {"ssg": "pelican", "page_count": 100, "avg_time_ms": 1180, "min_time_ms": 1156, "max_time_ms": 1197}        ,
+        {"ssg": "pelican", "page_count": 1000, "avg_time_ms": 6376, "min_time_ms": 6196, "max_time_ms": 6486}        ,
+        {"ssg": "pelican", "page_count": 5000, "avg_time_ms": 30365, "min_time_ms": 29174, "max_time_ms": 32628}        ,
+        {"ssg": "zola", "page_count": 10, "avg_time_ms": 842, "min_time_ms": 310, "max_time_ms": 1887}        ,
+        {"ssg": "zola", "page_count": 100, "avg_time_ms": 669, "min_time_ms": 657, "max_time_ms": 685}        ,
+        {"ssg": "zola", "page_count": 1000, "avg_time_ms": 4579, "min_time_ms": 4373, "max_time_ms": 4724}        ,
+        {"ssg": "zola", "page_count": 5000, "avg_time_ms": 22682, "min_time_ms": 21117, "max_time_ms": 24874}
+      ]
+    }    ,
+    {
+      "id": "20260313_123803",
+      "date": "2026-03-13",
+      "results": [
+        {"ssg": "hexo", "page_count": 10, "avg_time_ms": 1820, "min_time_ms": 1688, "max_time_ms": 1958}        ,
+        {"ssg": "hexo", "page_count": 100, "avg_time_ms": 2185, "min_time_ms": 2146, "max_time_ms": 2226}        ,
+        {"ssg": "hexo", "page_count": 1000, "avg_time_ms": 7664, "min_time_ms": 6853, "max_time_ms": 9103}        ,
+        {"ssg": "hexo", "page_count": 5000, "avg_time_ms": 50107, "min_time_ms": 39743, "max_time_ms": 70114}        ,
+        {"ssg": "hugo", "page_count": 10, "avg_time_ms": 412, "min_time_ms": 355, "max_time_ms": 526}        ,
+        {"ssg": "hugo", "page_count": 100, "avg_time_ms": 1091, "min_time_ms": 1089, "max_time_ms": 1094}        ,
+        {"ssg": "hugo", "page_count": 1000, "avg_time_ms": 8540, "min_time_ms": 8333, "max_time_ms": 8823}        ,
+        {"ssg": "hugo", "page_count": 5000, "avg_time_ms": 42854, "min_time_ms": 38455, "max_time_ms": 49396}        ,
+        {"ssg": "hwaro", "page_count": 10, "avg_time_ms": 298, "min_time_ms": 266, "max_time_ms": 330}        ,
+        {"ssg": "hwaro", "page_count": 100, "avg_time_ms": 1071, "min_time_ms": 898, "max_time_ms": 1227}        ,
+        {"ssg": "hwaro", "page_count": 1000, "avg_time_ms": 7370, "min_time_ms": 7264, "max_time_ms": 7533}        ,
+        {"ssg": "hwaro", "page_count": 5000, "avg_time_ms": 36925, "min_time_ms": 33664, "max_time_ms": 40112}        ,
+        {"ssg": "jekyll", "page_count": 10, "avg_time_ms": 1096, "min_time_ms": 673, "max_time_ms": 1936}        ,
+        {"ssg": "jekyll", "page_count": 100, "avg_time_ms": 1725, "min_time_ms": 1581, "max_time_ms": 1997}        ,
+        {"ssg": "jekyll", "page_count": 1000, "avg_time_ms": 11450, "min_time_ms": 10218, "max_time_ms": 13646}        ,
+        {"ssg": "jekyll", "page_count": 5000, "avg_time_ms": 54544, "min_time_ms": 51569, "max_time_ms": 59721}        ,
+        {"ssg": "pelican", "page_count": 10, "avg_time_ms": 768, "min_time_ms": 695, "max_time_ms": 826}        ,
+        {"ssg": "pelican", "page_count": 100, "avg_time_ms": 1603, "min_time_ms": 1430, "max_time_ms": 1862}        ,
+        {"ssg": "pelican", "page_count": 1000, "avg_time_ms": 7572, "min_time_ms": 7451, "max_time_ms": 7804}        ,
+        {"ssg": "pelican", "page_count": 5000, "avg_time_ms": 31384, "min_time_ms": 30805, "max_time_ms": 31695}        ,
+        {"ssg": "zola", "page_count": 10, "avg_time_ms": 369, "min_time_ms": 313, "max_time_ms": 419}        ,
+        {"ssg": "zola", "page_count": 100, "avg_time_ms": 773, "min_time_ms": 732, "max_time_ms": 852}        ,
+        {"ssg": "zola", "page_count": 1000, "avg_time_ms": 5140, "min_time_ms": 4725, "max_time_ms": 5444}        ,
+        {"ssg": "zola", "page_count": 5000, "avg_time_ms": 22902, "min_time_ms": 20206, "max_time_ms": 24692}
+      ]
+    }
+  ]
+}
