@@ -14,7 +14,7 @@ on:
       ssgs:
         description: 'SSGs to benchmark (space-separated)'
         required: false
-        default: 'hugo zola jekyll'
+        default: 'hugo zola jekyll hwaro eleventy pelican hexo'
       page_counts:
         description: 'Page counts to test (space-separated)'
         required: false
@@ -24,17 +24,8 @@ on:
         required: false
         default: '3'
 
-  # Run on push to main for testing workflow changes
-  push:
-    branches:
-      - main
-    paths:
-      - '.github/workflows/benchmark.yml'
-      - 'scripts/**'
-      - 'docker/**'
-
 env:
-  DEFAULT_SSGS: 'hugo zola jekyll'
+  DEFAULT_SSGS: 'hugo zola jekyll hwaro eleventy pelican hexo'
   DEFAULT_PAGE_COUNTS: '10 100 1000'
   DEFAULT_ITERATIONS: '3'
 
@@ -173,7 +164,7 @@ jobs:
             echo "| SSG | Previous (ms) | Current (ms) | Change |" >> $GITHUB_STEP_SUMMARY
             echo "|-----|---------------|--------------|--------|" >> $GITHUB_STEP_SUMMARY
 
-            for ssg in hugo zola jekyll blades hwaro; do
+            for ssg in hugo zola jekyll hwaro eleventy pelican hexo; do
               PREV_TIME=$(grep "^${ssg}," "results/${PREVIOUS}/results.csv" 2>/dev/null | head -1 | cut -d',' -f4 || echo "N/A")
               CURR_TIME=$(grep "^${ssg}," "results/${CURRENT}/results.csv" 2>/dev/null | head -1 | cut -d',' -f4 || echo "N/A")
 

@@ -4,9 +4,6 @@ name: Hwaro CI/CD
 on:
   push:
     branches: [main]
-    paths:
-      - "web/**"
-      - ".github/workflows/deploy-pages.yml"
   workflow_dispatch:
 
 permissions:
@@ -20,6 +17,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Generate Dashboard Data
+        run: |
+          chmod +x scripts/generate-site.sh
+          ./scripts/generate-site.sh
+
       - name: Build Only
         uses: hahwul/hwaro@main
         with:
@@ -32,6 +34,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+
+      - name: Generate Dashboard Data
+        run: |
+          chmod +x scripts/generate-site.sh
+          ./scripts/generate-site.sh
 
       - name: Build and Deploy
         uses: hahwul/hwaro@main
