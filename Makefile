@@ -3,7 +3,7 @@
 
 .PHONY: help build benchmark clean docker-build docker-clean \
         benchmark-hugo benchmark-zola benchmark-jekyll benchmark-blades benchmark-hwaro \
-        generate-content quick-test full-test report install-deps
+        generate-content quick-test full-test report install-deps site
 
 # Default target
 help:
@@ -27,6 +27,9 @@ help:
 	@echo "  benchmark-jekyll  Benchmark Jekyll only"
 	@echo "  benchmark-blades  Benchmark Blades only"
 	@echo "  benchmark-hwaro   Benchmark Hwaro only"
+	@echo ""
+	@echo "Site Targets:"
+	@echo "  site              Generate dashboard site from results"
 	@echo ""
 	@echo "Utility Targets:"
 	@echo "  generate-content  Generate test content for all SSGs"
@@ -253,6 +256,13 @@ install-deps:
 			echo "  ✗ $$util not found"; \
 		fi \
 	done
+
+# Generate dashboard site
+site:
+	@echo "Generating dashboard site..."
+	@chmod +x $(SCRIPT_DIR)/generate-site.sh
+	@./$(SCRIPT_DIR)/generate-site.sh
+	@echo "Dashboard ready at public/index.html"
 
 # Run with Docker Compose
 compose-build:
