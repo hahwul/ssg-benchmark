@@ -34,7 +34,7 @@ usage() {
     echo "Usage: $0 [OPTIONS]"
     echo ""
     echo "Options:"
-    echo "  -s, --ssg NAME        SSG name (hugo, zola, jekyll, blades, hwaro, eleventy, pelican, hexo)"
+    echo "  -s, --ssg NAME        SSG name (hugo, zola, jekyll, blades, hwaro, eleventy, pelican, hexo, gatsby)"
     echo "  -c, --count N         Number of pages to generate (default: 100)"
     echo "  -o, --output DIR      Output directory for generated content"
     echo "  -h, --help            Show this help message"
@@ -649,6 +649,57 @@ EOF
     log_success "Generated ${COUNT} Hexo posts in ${content_dir}"
 }
 
+# Generate content for Gatsby
+generate_gatsby_content() {
+    local content_dir="${OUTPUT_DIR}/src/posts"
+    mkdir -p "$content_dir"
+
+    log "Generating ${COUNT} Gatsby posts..."
+
+    # Install npm dependencies if package.json exists (before build timing)
+    if [ -f "${OUTPUT_DIR}/package.json" ] && [ ! -d "${OUTPUT_DIR}/node_modules" ]; then
+        log "Installing Gatsby npm dependencies..."
+        cd "$OUTPUT_DIR" && npm install --silent 2>/dev/null || npm install
+        cd - > /dev/null
+    fi
+
+    for i in $(seq 1 $COUNT); do
+        local date=$(generate_date $i)
+        local title=$(generate_title $i)
+        local slug="post-${i}"
+        local filename="${content_dir}/${slug}.md"
+
+        cat > "$filename" << EOF
+---
+title: "${title}"
+date: ${date}
+slug: "${slug}"
+tags:
+  - benchmark
+  - test
+---
+
+# ${title}
+
+$(generate_content)
+
+## Section One
+
+$(generate_content)
+
+## Section Two
+
+$(generate_content)
+
+## Conclusion
+
+$(generate_paragraph)
+EOF
+    done
+
+    log_success "Generated ${COUNT} Gatsby posts in ${content_dir}"
+}
+
 # Main execution
 main() {
     log "Content Generator for SSG Benchmark"
@@ -681,9 +732,12 @@ main() {
         hexo)
             generate_hexo_content
             ;;
+        gatsby)
+            generate_gatsby_content
+            ;;
         *)
             log_error "Unknown SSG: ${SSG}"
-            log_error "Supported SSGs: hugo, zola, jekyll, blades, hwaro, eleventy, pelican, hexo"
+            log_error "Supported SSGs: hugo, zola, jekyll, blades, hwaro, eleventy, pelican, hexo, gatsby"
             exit 1
             ;;
     esac
