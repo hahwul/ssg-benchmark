@@ -23,6 +23,7 @@ This repository is for benchmarking Static Site Generators (SSGs), primarily to 
 | [Zola](https://www.getzola.org/) | Rust | A fast static site generator in a single binary |
 | [Jekyll](https://jekyllrb.com/) | Ruby | Transform your plain text into static websites |
 | [Blades](https://github.com/grego/blades) | Rust | A fast & flexible static site generator |
+| [Astro](https://astro.build/) | JavaScript | The web framework for content-driven websites |
 
 ## Requirements
 

@@ -52,7 +52,7 @@ usage() {
     echo ""
     echo "Options:"
     echo "  -s, --ssgs LIST          Comma-separated list of SSGs to benchmark"
-    echo "                           (default: hugo,zola,jekyll,blades,hwaro,eleventy,pelican,hexo)"
+    echo "                           (default: hugo,zola,jekyll,blades,hwaro,eleventy,pelican,hexo,astro)"
     echo "  -p, --pages LIST         Comma-separated list of page counts"
     echo "                           (default: 10,100,1000,5000)"
     echo "  -i, --iterations N       Number of iterations per benchmark (default: 3)"
@@ -260,6 +260,9 @@ run_docker_benchmark() {
         hexo)
             build_cmd="hexo generate"
             ;;
+        astro)
+            build_cmd="astro build"
+            ;;
         *)
             build_cmd="${ssg} build"
             ;;
@@ -340,6 +343,9 @@ run_local_benchmark() {
             ;;
         hexo)
             build_cmd="hexo generate"
+            ;;
+        astro)
+            build_cmd="astro build"
             ;;
         *)
             build_cmd="${ssg} build"

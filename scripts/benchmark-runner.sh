@@ -63,6 +63,9 @@ detect_build_command() {
         hexo)
             echo "hexo generate"
             ;;
+        astro)
+            echo "astro build"
+            ;;
         *)
             # Try to auto-detect based on config files
             if [ -f "config.toml" ] || [ -f "config.yaml" ]; then
@@ -85,6 +88,8 @@ detect_build_command() {
                 echo "blades"
             elif [ -f "hwaro.toml" ]; then
                 echo "hwaro build"
+            elif [ -f "astro.config.mjs" ] || [ -f "astro.config.ts" ]; then
+                echo "astro build"
             else
                 log_error "Cannot detect SSG type"
                 exit 1
