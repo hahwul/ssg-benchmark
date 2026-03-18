@@ -1,7 +1,8 @@
 ---
 import Base from '../layouts/Base.astro';
 
-const posts = await Astro.glob('./posts/*.md');
+const postFiles = import.meta.glob('./posts/*.md', { eager: true });
+const posts = Object.values(postFiles);
 const sortedPosts = posts.sort((a, b) =>
   new Date(b.frontmatter.date).getTime() - new Date(a.frontmatter.date).getTime()
 ).slice(0, 10);
