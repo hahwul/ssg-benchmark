@@ -1,0 +1,17 @@
+FROM node:20-slim
+
+LABEL maintainer="SSG Benchmark"
+LABEL description="Docusaurus SSG Benchmark Environment"
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    bash \
+    coreutils \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /site
+
+# Default command
+CMD ["npx", "docusaurus", "build"]
