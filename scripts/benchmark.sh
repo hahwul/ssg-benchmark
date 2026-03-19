@@ -38,7 +38,7 @@ DOCKER_DIR="${PROJECT_DIR}/docker"
 # Benchmark settings
 DEFAULT_PAGE_COUNTS="10 100 1000 5000"
 DEFAULT_ITERATIONS=3
-DEFAULT_SSGS="hugo zola jekyll blades hwaro eleventy pelican hexo gatsby"
+DEFAULT_SSGS="hugo zola jekyll blades hwaro eleventy pelican hexo gatsby astro docusaurus"
 
 # Parse command line arguments
 PAGE_COUNTS="${PAGE_COUNTS:-$DEFAULT_PAGE_COUNTS}"
@@ -52,7 +52,7 @@ usage() {
     echo ""
     echo "Options:"
     echo "  -s, --ssgs LIST          Comma-separated list of SSGs to benchmark"
-    echo "                           (default: hugo,zola,jekyll,blades,hwaro,eleventy,pelican,hexo,gatsby,astro)"
+    echo "                           (default: hugo,zola,jekyll,blades,hwaro,eleventy,pelican,hexo,gatsby,astro,docusaurus)"
     echo "  -p, --pages LIST         Comma-separated list of page counts"
     echo "                           (default: 10,100,1000,5000)"
     echo "  -i, --iterations N       Number of iterations per benchmark (default: 3)"
@@ -266,6 +266,9 @@ run_docker_benchmark() {
         astro)
             build_cmd="astro build"
             ;;
+        docusaurus)
+            build_cmd="npx docusaurus build"
+            ;;
         *)
             build_cmd="${ssg} build"
             ;;
@@ -352,6 +355,9 @@ run_local_benchmark() {
             ;;
         astro)
             build_cmd="astro build"
+            ;;
+        docusaurus)
+            build_cmd="npx docusaurus build"
             ;;
         *)
             build_cmd="${ssg} build"
@@ -442,7 +448,7 @@ run_benchmarks() {
                 log "    Iteration ${iteration}/${ITERATIONS}..."
 
                 # Clean previous build output
-                rm -rf "${temp_site_dir}/public" "${temp_site_dir}/_site" "${temp_site_dir}/output" 2>/dev/null || true
+                rm -rf "${temp_site_dir}/public" "${temp_site_dir}/_site" "${temp_site_dir}/output" "${temp_site_dir}/build" 2>/dev/null || true
 
                 # Run benchmark
                 if [ "$USE_DOCKER" = "true" ]; then

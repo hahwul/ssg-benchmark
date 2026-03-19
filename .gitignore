@@ -26,6 +26,9 @@ sites/hexo/db.json
 sites/gatsby/src/posts/*.md
 !sites/gatsby/src/posts/.gitkeep
 sites/gatsby/.cache/
+sites/docusaurus/blog/*.md
+!sites/docusaurus/blog/.gitkeep
+sites/docusaurus/.docusaurus/
 
 # Benchmark results (optional - you may want to keep these)
 # Uncomment to ignore results
