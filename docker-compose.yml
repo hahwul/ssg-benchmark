@@ -128,6 +128,23 @@ services:
     mem_limit: 4g
     cpus: 2
 
+  # Gatsby - React-based static site generator
+  gatsby:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.gatsby
+    image: ssg-benchmark-gatsby
+    container_name: ssg-bench-gatsby
+    volumes:
+      - ./sites/gatsby:/site:rw
+      - ./results:/results:rw
+    working_dir: /site
+    environment:
+      - NODE_ENV=production
+    command: ["gatsby", "build"]
+    mem_limit: 4g
+    cpus: 2
+
   # Benchmark runner service
   benchmark-runner:
     image: alpine:3.19
@@ -143,7 +160,7 @@ services:
       - USE_DOCKER=true
       - ITERATIONS=3
       - PAGE_COUNTS=10 100 1000 5000
-      - SSGS=hugo zola jekyll blades hwaro eleventy pelican hexo
+      - SSGS=hugo zola jekyll blades hwaro eleventy pelican hexo gatsby
     depends_on:
       - hugo
       - zola
@@ -153,6 +170,7 @@ services:
       - eleventy
       - pelican
       - hexo
+      - gatsby
     command: ["sh", "-c", "apk add --no-cache bash docker-cli && bash /scripts/benchmark.sh"]
     profiles:
       - benchmark

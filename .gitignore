@@ -23,6 +23,9 @@ sites/pelican/content/*.md
 sites/hexo/source/_posts/*.md
 !sites/hexo/source/_posts/.gitkeep
 sites/hexo/db.json
+sites/gatsby/src/posts/*.md
+!sites/gatsby/src/posts/.gitkeep
+sites/gatsby/.cache/
 
 # Benchmark results (optional - you may want to keep these)
 # Uncomment to ignore results
