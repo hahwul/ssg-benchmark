@@ -3,7 +3,7 @@
 
 .PHONY: help build benchmark clean docker-build docker-clean \
         benchmark-hugo benchmark-zola benchmark-jekyll benchmark-blades benchmark-hwaro \
-        benchmark-eleventy benchmark-pelican benchmark-hexo benchmark-gatsby \
+        benchmark-eleventy benchmark-pelican benchmark-hexo benchmark-gatsby benchmark-astro \
         generate-content quick-test full-test report install-deps site
 
 # Default target
@@ -32,6 +32,7 @@ help:
 	@echo "  benchmark-pelican   Benchmark Pelican only"
 	@echo "  benchmark-hexo      Benchmark Hexo only"
 	@echo "  benchmark-gatsby    Benchmark Gatsby only"
+	@echo "  benchmark-astro     Benchmark Astro only"
 	@echo ""
 	@echo "Site Targets:"
 	@echo "  site              Generate dashboard site from results"
@@ -48,7 +49,7 @@ help:
 	@echo "Configuration (environment variables):"
 	@echo "  PAGE_COUNTS       Page counts to test (default: '10 100 1000 5000')"
 	@echo "  ITERATIONS        Iterations per test (default: 3)"
-	@echo "  SSGS              SSGs to benchmark (default: 'hugo zola jekyll hwaro eleventy pelican hexo gatsby')"
+	@echo "  SSGS              SSGs to benchmark (default: 'hugo zola jekyll hwaro eleventy pelican hexo gatsby astro')"
 	@echo "  USE_DOCKER        Use Docker containers (default: true)"
 	@echo ""
 	@echo "Examples:"
@@ -60,7 +61,7 @@ help:
 PAGE_COUNTS ?= 10 100 1000 5000
 ITERATIONS ?= 3
 # Default SSGs for benchmarking (blades excluded due to build issues)
-SSGS ?= hugo zola jekyll hwaro eleventy pelican hexo gatsby
+SSGS ?= hugo zola jekyll hwaro eleventy pelican hexo gatsby astro
 USE_DOCKER ?= true
 VERBOSE ?= false
 
@@ -106,8 +107,10 @@ clean:
 		rm -rf $(SITES_DIR)/$$ssg/public 2>/dev/null || true; \
 		rm -rf $(SITES_DIR)/$$ssg/_site 2>/dev/null || true; \
 		rm -rf $(SITES_DIR)/$$ssg/output 2>/dev/null || true; \
+		rm -rf $(SITES_DIR)/$$ssg/dist 2>/dev/null || true; \
 		rm -rf $(SITES_DIR)/$$ssg/db.json 2>/dev/null || true; \
 		rm -rf $(SITES_DIR)/$$ssg/.cache 2>/dev/null || true; \
+		rm -rf $(SITES_DIR)/$$ssg/src/pages/posts/*.md 2>/dev/null || true; \
 	done
 	@echo "Cleaned!"
 
@@ -135,7 +138,7 @@ quick-test:
 	USE_DOCKER=$(USE_DOCKER) \
 	PAGE_COUNTS="10" \
 	ITERATIONS=1 \
-	SSGS="hugo zola jekyll hwaro eleventy pelican hexo gatsby" \
+	SSGS="hugo zola jekyll hwaro eleventy pelican hexo gatsby astro" \
 	VERBOSE=true \
 	./$(SCRIPT_DIR)/benchmark.sh
 
@@ -222,6 +225,14 @@ benchmark-gatsby:
 	SSGS="gatsby" \
 	./$(SCRIPT_DIR)/benchmark.sh
 
+benchmark-astro:
+	@chmod +x $(SCRIPT_DIR)/*.sh
+	USE_DOCKER=$(USE_DOCKER) \
+	PAGE_COUNTS="$(PAGE_COUNTS)" \
+	ITERATIONS=$(ITERATIONS) \
+	SSGS="astro" \
+	./$(SCRIPT_DIR)/benchmark.sh
+
 # Generate test content for all SSGs
 generate-content:
 	@echo "Generating test content..."
@@ -283,7 +294,7 @@ install-deps:
 	fi
 	@echo ""
 	@echo "Local SSGs (optional, for --no-docker mode):"
-	@for ssg in hugo zola jekyll blades hwaro eleventy pelican hexo gatsby; do \
+	@for ssg in hugo zola jekyll blades hwaro eleventy pelican hexo gatsby astro; do \
 		if command -v $$ssg >/dev/null 2>&1; then \
 			echo "  ✓ $$ssg installed"; \
 		else \

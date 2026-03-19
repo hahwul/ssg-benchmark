@@ -1,0 +1,19 @@
+FROM node:20-slim
+
+LABEL maintainer="SSG Benchmark"
+LABEL description="Astro SSG Benchmark Environment"
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    bash \
+    coreutils \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Astro globally
+RUN npm install -g astro
+
+# Set working directory
+WORKDIR /site
+
+# Default command
+CMD ["astro", "build"]

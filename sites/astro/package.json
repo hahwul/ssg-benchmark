@@ -1,0 +1,11 @@
+{
+  "name": "ssg-benchmark-astro",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "astro build"
+  },
+  "dependencies": {
+    "astro": "^5.15.8"
+  }
+}
