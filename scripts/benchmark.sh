@@ -438,11 +438,23 @@ run_benchmarks() {
 
             # Copy base site template
             if [ -d "${SITES_DIR}/${ssg}" ]; then
-                cp -r "${SITES_DIR}/${ssg}/"* "$temp_site_dir/" 2>/dev/null || true
+                cp -ra "${SITES_DIR}/${ssg}/." "$temp_site_dir/" 2>/dev/null || true
             fi
 
             # Generate content
             generate_content "$ssg" "$page_count" "$temp_site_dir"
+
+            # Install npm dependencies inside Docker for node-based SSGs (outside timing)
+            if [ "$USE_DOCKER" = "true" ]; then
+                case $ssg in
+                    gatsby|astro|docusaurus)
+                        if [ -f "${temp_site_dir}/package.json" ]; then
+                            log "    Installing npm dependencies in Docker..."
+                            docker run --rm -v "${temp_site_dir}:/site:rw" "ssg-benchmark-${ssg}" sh -c "cd /site && npm install" 2>/dev/null || true
+                        fi
+                        ;;
+                esac
+            fi
 
             for iteration in $(seq 1 "$ITERATIONS"); do
                 log "    Iteration ${iteration}/${ITERATIONS}..."
