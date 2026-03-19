@@ -34,7 +34,7 @@ usage() {
     echo "Usage: $0 [OPTIONS]"
     echo ""
     echo "Options:"
-    echo "  -s, --ssg NAME        SSG name (hugo, zola, jekyll, blades, hwaro, eleventy, pelican, hexo, docusaurus)"
+    echo "  -s, --ssg NAME        SSG name (hugo, zola, jekyll, blades, hwaro, eleventy, pelican, hexo, gatsby, astro, docusaurus)"
     echo "  -c, --count N         Number of pages to generate (default: 100)"
     echo "  -o, --output DIR      Output directory for generated content"
     echo "  -h, --help            Show this help message"
@@ -649,6 +649,106 @@ EOF
     log_success "Generated ${COUNT} Hexo posts in ${content_dir}"
 }
 
+# Generate content for Gatsby
+generate_gatsby_content() {
+    local content_dir="${OUTPUT_DIR}/src/posts"
+    mkdir -p "$content_dir"
+
+    log "Generating ${COUNT} Gatsby posts..."
+
+    # Install npm dependencies if package.json exists (before build timing)
+    if [ -f "${OUTPUT_DIR}/package.json" ] && [ ! -d "${OUTPUT_DIR}/node_modules" ]; then
+        log "Installing Gatsby npm dependencies..."
+        cd "$OUTPUT_DIR" && npm install --silent 2>/dev/null || npm install
+        cd - > /dev/null
+    fi
+
+    for i in $(seq 1 $COUNT); do
+        local date=$(generate_date $i)
+        local title=$(generate_title $i)
+        local slug="post-${i}"
+        local filename="${content_dir}/${slug}.md"
+
+        cat > "$filename" << EOF
+---
+title: "${title}"
+date: ${date}
+slug: "${slug}"
+tags:
+  - benchmark
+  - test
+---
+
+# ${title}
+
+$(generate_content)
+
+## Section One
+
+$(generate_content)
+
+## Section Two
+
+$(generate_content)
+
+## Conclusion
+
+$(generate_paragraph)
+EOF
+    done
+
+    log_success "Generated ${COUNT} Gatsby posts in ${content_dir}"
+}
+
+# Generate content for Astro
+generate_astro_content() {
+    local content_dir="${OUTPUT_DIR}/src/pages/posts"
+    mkdir -p "$content_dir"
+
+    log "Generating ${COUNT} Astro posts..."
+
+    # Install npm dependencies if package.json exists (before build timing)
+    if [ -f "${OUTPUT_DIR}/package.json" ] && [ ! -d "${OUTPUT_DIR}/node_modules" ]; then
+        log "Installing Astro npm dependencies..."
+        cd "$OUTPUT_DIR" && npm install --silent 2>/dev/null || npm install
+        cd - > /dev/null
+    fi
+
+    for i in $(seq 1 $COUNT); do
+        local date=$(generate_date $i)
+        local title=$(generate_title $i)
+        local slug="post-${i}"
+        local filename="${content_dir}/${slug}.md"
+
+        cat > "$filename" << EOF
+---
+layout: ../../layouts/Base.astro
+title: "${title}"
+date: ${date}
+tags: ["benchmark", "test"]
+---
+
+# ${title}
+
+$(generate_content)
+
+## Section One
+
+$(generate_content)
+
+## Section Two
+
+$(generate_content)
+
+## Conclusion
+
+$(generate_paragraph)
+EOF
+    done
+
+    log_success "Generated ${COUNT} Astro posts in ${content_dir}"
+}
+
 # Generate content for Docusaurus
 generate_docusaurus_content() {
     local content_dir="${OUTPUT_DIR}/blog"
@@ -733,12 +833,18 @@ main() {
         hexo)
             generate_hexo_content
             ;;
+        gatsby)
+            generate_gatsby_content
+            ;;
+        astro)
+            generate_astro_content
+            ;;
         docusaurus)
             generate_docusaurus_content
             ;;
         *)
             log_error "Unknown SSG: ${SSG}"
-            log_error "Supported SSGs: hugo, zola, jekyll, blades, hwaro, eleventy, pelican, hexo, docusaurus"
+            log_error "Supported SSGs: hugo, zola, jekyll, blades, hwaro, eleventy, pelican, hexo, gatsby, astro, docusaurus"
             exit 1
             ;;
     esac
