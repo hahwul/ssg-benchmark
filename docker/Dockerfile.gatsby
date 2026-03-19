@@ -1,0 +1,20 @@
+FROM node:20-slim
+
+LABEL maintainer="SSG Benchmark"
+LABEL description="Gatsby SSG Benchmark Environment"
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    bash \
+    coreutils \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Gatsby CLI globally
+RUN npm install -g gatsby-cli
+
+# Set working directory
+WORKDIR /site
+
+# Default command
+CMD ["gatsby", "build"]
