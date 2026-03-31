@@ -5,7 +5,11 @@ const SSG_META = {
   hwaro:    { color: '#E0E0E0', lang: 'Crystal', desc: 'A lightweight static site generator' },
   eleventy: { color: '#FFD700', lang: 'Node.js', desc: 'A simpler static site generator' },
   pelican:  { color: '#328484', lang: 'Python',  desc: 'A static site generator powered by Python' },
-  hexo:     { color: '#0E83CD', lang: 'Node.js', desc: 'A fast, simple & powerful blog framework' }
+  hexo:       { color: '#0E83CD', lang: 'Node.js', desc: 'A fast, simple & powerful blog framework' },
+  gatsby:     { color: '#663399', lang: 'Node.js', desc: 'A React-based open source framework for creating websites' },
+  astro:      { color: '#FF5D01', lang: 'Node.js', desc: 'The web framework for content-driven websites' },
+  blades:     { color: '#E44D26', lang: 'Rust',    desc: 'A blazing fast dead simple static site generator' },
+  docusaurus: { color: '#2E8555', lang: 'Node.js', desc: 'Build optimized websites quickly with React' }
 };
 
 let DATA = null;
