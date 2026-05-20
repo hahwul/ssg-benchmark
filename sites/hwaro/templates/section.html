@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ section.title }} - {{ site.title }}</title>
-    <meta name="description" content="{{ section.description | default: site.description }}">
+    <meta name="description" content="{{ section.description | default(value=site.description) }}">
 </head>
 <body>
     <header>

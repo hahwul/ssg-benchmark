@@ -264,7 +264,7 @@ run_docker_benchmark() {
             build_cmd="gatsby build"
             ;;
         astro)
-            build_cmd="astro build"
+            build_cmd="npx astro build"
             ;;
         docusaurus)
             build_cmd="npx docusaurus build"
@@ -354,7 +354,7 @@ run_local_benchmark() {
             build_cmd="gatsby build"
             ;;
         astro)
-            build_cmd="astro build"
+            build_cmd="npx astro build"
             ;;
         docusaurus)
             build_cmd="npx docusaurus build"
@@ -438,7 +438,7 @@ run_benchmarks() {
 
             # Copy base site template
             if [ -d "${SITES_DIR}/${ssg}" ]; then
-                cp -ra "${SITES_DIR}/${ssg}/." "$temp_site_dir/" 2>/dev/null || true
+                cp -a "${SITES_DIR}/${ssg}/." "$temp_site_dir/" 2>/dev/null || true
             fi
 
             # Generate content
@@ -447,7 +447,7 @@ run_benchmarks() {
             # Install npm dependencies inside Docker for node-based SSGs (outside timing)
             if [ "$USE_DOCKER" = "true" ]; then
                 case $ssg in
-                    gatsby|astro|docusaurus)
+                    gatsby|astro|docusaurus|hexo)
                         if [ -f "${temp_site_dir}/package.json" ]; then
                             log "    Installing npm dependencies in Docker..."
                             docker run --rm -v "${temp_site_dir}:/site:rw" "ssg-benchmark-${ssg}" sh -c "cd /site && npm install" 2>/dev/null || true

@@ -26,9 +26,6 @@ const config = {
           showReadingTime: false,
           blogSidebarCount: 0,
         },
-        theme: {
-          customCss: [],
-        },
       }),
     ],
   ],
