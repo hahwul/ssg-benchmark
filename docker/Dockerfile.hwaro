@@ -19,9 +19,11 @@ RUN apt-get update && \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Clone and build hwaro
+# `-Dpreview_mt` matches hwaro's official Dockerfile and release binaries;
+# without it the build runs single-threaded.
 RUN git clone https://github.com/hahwul/hwaro.git . && \
     shards install --production && \
-    shards build --release --no-debug --production
+    shards build --release --no-debug --production -Dpreview_mt
 
 ##= RUNNER =##
 FROM debian:13-slim
