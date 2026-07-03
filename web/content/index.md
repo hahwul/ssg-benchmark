@@ -8,8 +8,19 @@ description = "Static Site Generator Build Performance Benchmark"
   <p id="updated" class="updated"></p>
 </div>
 
-<div class="controls" id="scenarioControls"></div>
-<p class="updated" id="scenarioNote"></p>
+<section class="panel triptych-panel" id="triptychPanel" hidden>
+  <div class="panel-head">
+    <div>
+      <span class="kicker">Workloads</span>
+      <h2>Three scenarios, one glance</h2>
+    </div>
+    <span class="panel-note" id="triptychNote"></span>
+  </div>
+  <div class="triptych" id="scenarioTriptych"></div>
+</section>
+
+<div class="controls scenario-controls" id="scenarioControls"></div>
+<p class="updated scenario-note" id="scenarioNote"></p>
 
 <section class="panel">
   <div class="panel-head">

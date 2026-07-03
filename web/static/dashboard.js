@@ -26,6 +26,22 @@ const SCENARIO_NOTES = {
   legacy: 'Old methodology (v1): timing includes Docker container overhead and workloads were NOT parity-aligned across SSGs. Not comparable with v2 scenarios.'
 };
 
+// Per-scenario accent colors: minimal keeps the site lime, blog cools down,
+// heavy runs hot. Used by the triptych, the scenario toggle and chart glow.
+const SCENARIO_ACCENTS = {
+  minimal: '#cdf655',
+  blog: '#6fd6ff',
+  heavy: '#ffb454',
+  legacy: '#969c8f'
+};
+
+const SCENARIO_TAGLINES = {
+  minimal: 'markdown → HTML',
+  blog: 'tags · pagination · feed',
+  heavy: '+ syntax highlighting',
+  legacy: 'old methodology'
+};
+
 const THEME = {
   text: '#edefe6',
   muted: '#969c8f',
@@ -83,6 +99,7 @@ async function init() {
   const scenarios = getScenarios();
   selectedScenario = scenarios.indexOf('minimal') >= 0 ? 'minimal' : scenarios[0];
 
+  renderTriptych();
   renderScenarioControls();
   renderAll();
 }
@@ -139,6 +156,22 @@ function displayName(ssg) {
   return ssg.charAt(0).toUpperCase() + ssg.slice(1);
 }
 
+function selectScenario(sc) {
+  if (selectedScenario === sc) return;
+  selectedScenario = sc;
+  syncScenarioUI();
+  renderAll();
+}
+
+function syncScenarioUI() {
+  document.querySelectorAll('#scenarioControls button').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.scenario === selectedScenario);
+  });
+  document.querySelectorAll('#scenarioTriptych .tri-col').forEach(function(col) {
+    col.classList.toggle('active', col.dataset.scenario === selectedScenario);
+  });
+}
+
 function renderScenarioControls() {
   const container = document.getElementById('scenarioControls');
   if (!container) return;
@@ -147,15 +180,78 @@ function renderScenarioControls() {
   getScenarios().forEach(function(sc) {
     const btn = document.createElement('button');
     btn.textContent = SCENARIO_LABELS[sc] || sc;
+    btn.dataset.scenario = sc;
+    btn.style.setProperty('--sc', SCENARIO_ACCENTS[sc] || '#cdf655');
     btn.className = sc === selectedScenario ? 'active' : '';
-    btn.addEventListener('click', function() {
-      if (selectedScenario === sc) return;
-      selectedScenario = sc;
-      container.querySelectorAll('button').forEach(function(b) { b.classList.remove('active'); });
-      btn.classList.add('active');
-      renderAll();
-    });
+    btn.addEventListener('click', function() { selectScenario(sc); });
     container.appendChild(btn);
+  });
+}
+
+// Scenario triptych: the three v2 workloads side by side, each a
+// mini-leaderboard at the largest common page count of its latest run.
+function renderTriptych() {
+  const panel = document.getElementById('triptychPanel');
+  const container = document.getElementById('scenarioTriptych');
+  if (!panel || !container) return;
+
+  const scenarios = getScenarios().filter(function(s) { return s !== 'legacy'; });
+  if (scenarios.length < 2) { panel.hidden = true; return; }
+  panel.hidden = false;
+
+  const prev = selectedScenario;
+  let refPc = null;
+  const columns = scenarios.map(function(sc) {
+    selectedScenario = sc;
+    const run = latestRun();
+    if (!run) return null;
+    const pcs = run.results.map(function(r) { return r.page_count; });
+    const pc = Math.max.apply(null, pcs);
+    refPc = Math.max(refPc || 0, pc);
+    const entries = run.results
+      .filter(function(r) { return r.page_count === pc; })
+      .sort(function(a, b) { return a.avg_time_ms - b.avg_time_ms; });
+    return { sc: sc, pc: pc, entries: entries, runDate: run.date };
+  }).filter(Boolean);
+  selectedScenario = prev;
+
+  const note = document.getElementById('triptychNote');
+  if (note && refPc) note.textContent = 'median build time @ ' + refPc.toLocaleString() + ' pages';
+
+  container.innerHTML = columns.map(function(col, ci) {
+    const accent = SCENARIO_ACCENTS[col.sc] || '#cdf655';
+    const slowest = Math.max.apply(null, col.entries.map(function(e) { return e.avg_time_ms; }));
+    const rows = col.entries.map(function(e, i) {
+      const meta = SSG_META[e.ssg] || { color: '#888' };
+      const pct = Math.max(2, (e.avg_time_ms / slowest) * 100);
+      const delay = 120 + ci * 90 + i * 60;
+      return '<li class="tri-row' + (i === 0 ? ' first' : '') + '">' +
+        '<span class="tri-ssg"><span class="dot" style="--c:' + meta.color + '"></span>' + displayName(e.ssg) + '</span>' +
+        '<span class="tri-track"><span class="tri-fill" style="width:' + pct.toFixed(1) + '%;animation-delay:' + delay + 'ms"></span></span>' +
+        '<span class="tri-time">' + formatMs(e.avg_time_ms) + '</span>' +
+        '</li>';
+    }).join('');
+    return '<div class="tri-col' + (col.sc === selectedScenario ? ' active' : '') + '"' +
+      ' data-scenario="' + col.sc + '" style="--sc:' + accent + '"' +
+      ' role="button" tabindex="0"' +
+      ' aria-label="Show ' + (SCENARIO_LABELS[col.sc] || col.sc) + ' scenario details">' +
+      '<div class="tri-head">' +
+        '<span class="tri-name">' + (SCENARIO_LABELS[col.sc] || col.sc) + '</span>' +
+        '<span class="tri-tagline">' + (SCENARIO_TAGLINES[col.sc] || '') + '</span>' +
+      '</div>' +
+      '<ol class="tri-list">' + rows + '</ol>' +
+      '<span class="tri-foot">@ ' + col.pc.toLocaleString() + ' pages</span>' +
+      '</div>';
+  }).join('');
+
+  container.querySelectorAll('.tri-col').forEach(function(col) {
+    col.addEventListener('click', function() { selectScenario(col.dataset.scenario); });
+    col.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        selectScenario(col.dataset.scenario);
+      }
+    });
   });
 }
 
@@ -180,6 +276,7 @@ function renderLeaderboard() {
   var container = document.getElementById('leaderboard-list');
   if (!container) return;
   container.innerHTML = '';
+  container.style.setProperty('--sc', SCENARIO_ACCENTS[selectedScenario] || '#cdf655');
   var run = latestRun();
   if (!run) return;
 

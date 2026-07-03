@@ -101,11 +101,11 @@
     @media (hover: hover) { .lb-row:hover { background: var(--panel-hover); } }
     .lb-row + .lb-row { border-top: 1px solid rgba(255, 255, 255, 0.04); }
     .lb-rank { font-family: var(--font-mono); font-size: 0.78rem; color: var(--text-dim); }
-    .lb-row.first .lb-rank { color: var(--accent); font-weight: 600; }
+    .lb-row.first .lb-rank { color: var(--sc, var(--accent)); font-weight: 600; }
     .lb-name { display: inline-flex; align-items: center; gap: 9px; font-weight: 600; font-size: 0.92rem; letter-spacing: -0.005em; min-width: 0; }
     .lb-name .dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--c, #888); box-shadow: 0 0 10px color-mix(in srgb, var(--c, #888) 45%, transparent); }
     .lb-lang { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; color: var(--text-dim); border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; white-space: nowrap; }
-    .lb-badge { font-family: var(--font-mono); font-size: 0.62rem; font-weight: 600; letter-spacing: 0.08em; color: #0b0c09; background: var(--accent); border-radius: 999px; padding: 2px 8px; white-space: nowrap; box-shadow: 0 0 16px var(--accent-soft); }
+    .lb-badge { font-family: var(--font-mono); font-size: 0.62rem; font-weight: 600; letter-spacing: 0.08em; color: #0b0c09; background: var(--sc, var(--accent)); border-radius: 999px; padding: 2px 8px; white-space: nowrap; box-shadow: 0 0 16px color-mix(in srgb, var(--sc, var(--accent)) 22%, transparent); }
     .lb-track { height: 6px; border-radius: 999px; background: rgba(255, 255, 255, 0.05); overflow: hidden; }
     .lb-fill {
       display: block; height: 100%; border-radius: 999px;
@@ -142,7 +142,77 @@
     }
     @media (hover: hover) { .controls button:hover { color: var(--text); border-color: var(--line-strong); } }
     .controls button:active { transform: scale(0.96); }
-    .controls button.active { background: var(--accent); border-color: transparent; color: #0b0c09; font-weight: 600; box-shadow: 0 0 18px var(--accent-soft); }
+    .controls button.active {
+      background: var(--sc, var(--accent)); border-color: transparent;
+      color: #0b0c09; font-weight: 600;
+      box-shadow: 0 0 18px color-mix(in srgb, var(--sc, var(--accent)) 22%, transparent);
+    }
+    .scenario-controls { margin-bottom: 6px; }
+    .scenario-note { margin: 0 0 18px; max-width: 62ch; }
+
+    /* Scenario triptych */
+    .triptych { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+    .tri-col {
+      position: relative;
+      display: flex; flex-direction: column;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      padding: 16px 16px 13px;
+      cursor: pointer;
+      overflow: hidden;
+      transition: border-color 0.18s, background-color 0.18s, transform 0.12s, box-shadow 0.18s;
+    }
+    .tri-col::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--sc), transparent);
+      opacity: 0.25;
+      transition: opacity 0.18s;
+    }
+    @media (hover: hover) {
+      .tri-col:hover { background: var(--panel-hover); border-color: color-mix(in srgb, var(--sc) 32%, transparent); }
+      .tri-col:hover::before { opacity: 0.6; }
+    }
+    .tri-col:active { transform: scale(0.985); }
+    .tri-col.active {
+      border-color: color-mix(in srgb, var(--sc) 50%, transparent);
+      background: color-mix(in srgb, var(--sc) 4%, transparent);
+      box-shadow: 0 0 28px -6px color-mix(in srgb, var(--sc) 22%, transparent);
+    }
+    .tri-col.active::before { opacity: 1; }
+    .tri-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+    .tri-name {
+      font-family: var(--font-mono); font-size: 0.72rem; font-weight: 600;
+      letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--sc);
+      text-shadow: 0 0 14px color-mix(in srgb, var(--sc) 35%, transparent);
+    }
+    .tri-tagline { font-family: var(--font-mono); font-size: 0.64rem; color: var(--text-dim); white-space: nowrap; }
+    .tri-list { list-style: none; margin: 14px 0 12px; padding: 0; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+    .tri-row {
+      display: grid;
+      grid-template-columns: 5.6rem 1fr auto;
+      align-items: center; gap: 9px;
+      font-size: 0.78rem;
+    }
+    .tri-ssg { display: inline-flex; align-items: center; gap: 6px; font-weight: 550; letter-spacing: -0.005em; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tri-ssg .dot { flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--c, #888); box-shadow: 0 0 8px color-mix(in srgb, var(--c, #888) 40%, transparent); }
+    .tri-track { height: 4px; border-radius: 999px; background: rgba(255, 255, 255, 0.05); overflow: hidden; }
+    .tri-fill {
+      display: block; height: 100%; border-radius: 999px;
+      background: var(--sc); opacity: 0.38;
+      transform-origin: left center;
+      animation: sweep 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    .tri-row.first .tri-fill { opacity: 1; box-shadow: 0 0 10px color-mix(in srgb, var(--sc) 45%, transparent); }
+    .tri-time { font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .tri-row.first .tri-time { color: var(--sc); font-weight: 600; }
+    .tri-foot { font-family: var(--font-mono); font-size: 0.62rem; color: var(--text-dim); }
+    @media (max-width: 860px) {
+      .triptych { grid-template-columns: 1fr; }
+      .tri-col { padding: 14px 14px 11px; }
+    }
 
     /* Table */
     .table-scroll { max-height: 540px; overflow: auto; border: 1px solid var(--line); border-radius: var(--r-md); }
@@ -194,8 +264,8 @@
     }
 
     @media (prefers-reduced-motion: reduce) {
-      .panel, .page-head, .lb-fill { animation: none; }
-      .controls button:active, .site-header nav a:active { transform: none; }
+      .panel, .page-head, .lb-fill, .tri-fill { animation: none; }
+      .controls button:active, .site-header nav a:active, .tri-col:active { transform: none; }
     }
   </style>
 </head>
