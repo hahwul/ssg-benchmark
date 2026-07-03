@@ -1,34 +1,39 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
-# SSG Benchmark - Content Generator
-# Generates test posts/pages for each SSG format
+# SSG Benchmark - Content Generator (v2)
 #
+# Generates a deterministic, seeded corpus of markdown bodies shared by ALL
+# SSGs, then emits per-SSG files that differ only in front-matter format.
+# This guarantees every SSG builds byte-identical content for a given
+# (scenario, page index), and that runs are reproducible across machines.
+#
+# Scenarios:
+#   minimal  - plain markdown body, no tags (no taxonomy work anywhere)
+#   blog     - body + 2 tags per post from a fixed pool of 10
+#   heavy    - blog + fenced code blocks in the body (syntax highlighting load)
+#
+# Compatible with macOS bash 3.2 (no associative arrays, no mapfile).
 
 set -e
 
-# Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-# Default settings
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+
 SSG=""
 COUNT=100
 OUTPUT_DIR=""
+SCENARIO="${SCENARIO:-minimal}"
+SEED="${SEED:-42}"
+CORPUS_ROOT="${CORPUS_DIR:-${PROJECT_DIR}/.corpus}"
 
-log() {
-    echo -e "${BLUE}[INFO]${NC} $1"
-}
-
-log_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
-}
-
-log_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-}
+log() { echo -e "${BLUE}[INFO]${NC} $1"; }
+log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
+log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
 usage() {
     echo "Usage: $0 [OPTIONS]"
@@ -36,165 +41,258 @@ usage() {
     echo "Options:"
     echo "  -s, --ssg NAME        SSG name (hugo, zola, jekyll, blades, hwaro, eleventy, pelican, hexo, gatsby, astro, docusaurus)"
     echo "  -c, --count N         Number of pages to generate (default: 100)"
-    echo "  -o, --output DIR      Output directory for generated content"
+    echo "  -o, --output DIR      Output directory (site root)"
+    echo "  -n, --scenario NAME   Scenario: minimal, blog, heavy (default: minimal)"
     echo "  -h, --help            Show this help message"
     echo ""
-    echo "Examples:"
-    echo "  $0 --ssg hugo --count 1000 --output ./test-site"
-    echo "  $0 -s zola -c 500 -o ./benchmark-site"
+    echo "Environment variables: SEED (default 42), CORPUS_DIR (default .corpus/)"
 }
 
-# Parse arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
-        -s|--ssg)
-            SSG="$2"
-            shift 2
-            ;;
-        -c|--count)
-            COUNT="$2"
-            shift 2
-            ;;
-        -o|--output)
-            OUTPUT_DIR="$2"
-            shift 2
-            ;;
-        -h|--help)
-            usage
-            exit 0
-            ;;
-        *)
-            log_error "Unknown option: $1"
-            usage
-            exit 1
-            ;;
+        -s|--ssg) SSG="$2"; shift 2 ;;
+        -c|--count) COUNT="$2"; shift 2 ;;
+        -o|--output) OUTPUT_DIR="$2"; shift 2 ;;
+        -n|--scenario) SCENARIO="$2"; shift 2 ;;
+        -h|--help) usage; exit 0 ;;
+        *) log_error "Unknown option: $1"; usage; exit 1 ;;
     esac
 done
 
-# Validate arguments
-if [ -z "$SSG" ]; then
-    log_error "SSG name is required"
-    usage
-    exit 1
-fi
+[ -n "$SSG" ] || { log_error "SSG name is required"; usage; exit 1; }
+[ -n "$OUTPUT_DIR" ] || { log_error "Output directory is required"; usage; exit 1; }
 
-if [ -z "$OUTPUT_DIR" ]; then
-    log_error "Output directory is required"
-    usage
-    exit 1
-fi
+case $SCENARIO in
+    minimal|blog|heavy) ;;
+    *) log_error "Unknown scenario: ${SCENARIO} (expected minimal, blog, heavy)"; exit 1 ;;
+esac
 
-# Create output directory if it doesn't exist
 mkdir -p "$OUTPUT_DIR"
 
-# Generate Lorem Ipsum-like content
-generate_paragraph() {
-    local paragraphs=(
-        "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
-        "Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
-        "Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo."
-        "Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt."
-        "Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit, sed quia non numquam eius modi tempora incidunt ut labore et dolore magnam aliquam quaerat voluptatem."
-        "Ut enim ad minima veniam, quis nostrum exercitationem ullam corporis suscipit laboriosam, nisi ut aliquid ex ea commodi consequatur?"
-        "Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse quam nihil molestiae consequatur, vel illum qui dolorem eum fugiat quo voluptas nulla pariatur?"
-        "At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident."
-    )
-    echo "${paragraphs[$((RANDOM % ${#paragraphs[@]}))]}"
+# =============================================================================
+# Deterministic building blocks
+# =============================================================================
+
+PARAGRAPHS=(
+    "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
+    "Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
+    "Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo."
+    "Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt."
+    "Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit, sed quia non numquam eius modi tempora incidunt ut labore et dolore magnam aliquam quaerat voluptatem."
+    "Ut enim ad minima veniam, quis nostrum exercitationem ullam corporis suscipit laboriosam, nisi ut aliquid ex ea commodi consequatur?"
+    "Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse quam nihil molestiae consequatur, vel illum qui dolorem eum fugiat quo voluptas nulla pariatur?"
+    "At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident."
+)
+
+TITLES=(
+    "Getting Started with Static Sites"
+    "Performance Optimization Tips"
+    "Building Modern Websites"
+    "Understanding Build Systems"
+    "Content Management Strategies"
+    "Web Development Best Practices"
+    "Deployment Automation Guide"
+    "Template Engine Comparison"
+    "Asset Pipeline Configuration"
+    "SEO for Static Sites"
+)
+
+TAG_POOL=(performance tutorial webdev deployment markdown templates seo automation testing design)
+
+CODE_LANGS=(javascript python rust go ruby crystal)
+CODE_SNIPPETS=(
+'function buildPages(pages) {
+  const results = [];
+  for (const page of pages) {
+    const html = render(page.template, page.data);
+    results.push({ path: page.path, html });
+  }
+  return results;
 }
 
-generate_content() {
-    local num_paragraphs=$((RANDOM % 5 + 3))
-    local content=""
-    for i in $(seq 1 $num_paragraphs); do
-        content="${content}$(generate_paragraph)\n\n"
+module.exports = { buildPages };'
+'def build_pages(pages):
+    results = []
+    for page in pages:
+        html = render(page["template"], page["data"])
+        results.append({"path": page["path"], "html": html})
+    return results
+
+
+if __name__ == "__main__":
+    print(len(build_pages(load_pages())))'
+'pub fn build_pages(pages: &[Page]) -> Vec<Output> {
+    pages
+        .iter()
+        .map(|page| Output {
+            path: page.path.clone(),
+            html: render(&page.template, &page.data),
+        })
+        .collect()
+}'
+'func BuildPages(pages []Page) []Output {
+	outputs := make([]Output, 0, len(pages))
+	for _, page := range pages {
+		html := Render(page.Template, page.Data)
+		outputs = append(outputs, Output{Path: page.Path, HTML: html})
+	}
+	return outputs
+}'
+'def build_pages(pages)
+  pages.map do |page|
+    html = render(page[:template], page[:data])
+    { path: page[:path], html: html }
+  end
+end
+
+puts build_pages(load_pages).size'
+'def build_pages(pages : Array(Page)) : Array(Output)
+  pages.map do |page|
+    html = render(page.template, page.data)
+    Output.new(path: page.path, html: html)
+  end
+end
+
+puts build_pages(load_pages).size'
+)
+
+# Date derived purely from the page index: valid, unique-ish, reproducible.
+page_date() {
+    local i=$1
+    local day=$((1 + (i % 28)))
+    local month=$((1 + ((i / 28) % 12)))
+    local year=$((2025 - (i / 336)))
+    printf "%04d-%02d-%02d" "$year" "$month" "$day"
+}
+
+page_title() {
+    local i=$1
+    echo "${TITLES[$(((i - 1) % ${#TITLES[@]}))]} - Part ${i}"
+}
+
+# Two distinct tags from the pool, derived from the page index.
+page_tags() {
+    local i=$1
+    local t1=$((i % 10))
+    local t2=$(((i / 10 + i + 3) % 10))
+    [ "$t1" -eq "$t2" ] && t2=$(((t2 + 1) % 10))
+    echo "${TAG_POOL[$t1]} ${TAG_POOL[$t2]}"
+}
+
+# =============================================================================
+# Corpus: shared markdown bodies, cached under .corpus/<class>/NNNNN.md
+# =============================================================================
+
+corpus_class() {
+    case $SCENARIO in
+        heavy) echo "code" ;;
+        *) echo "plain" ;;
+    esac
+}
+
+emit_paragraphs() {
+    local n=$1
+    local j
+    for j in $(seq 1 "$n"); do
+        echo "${PARAGRAPHS[$((RANDOM % ${#PARAGRAPHS[@]}))]}"
+        echo ""
     done
-    echo -e "$content"
 }
 
-generate_title() {
-    local index=$1
-    local titles=(
-        "Getting Started with Static Sites"
-        "Performance Optimization Tips"
-        "Building Modern Websites"
-        "Understanding Build Systems"
-        "Content Management Strategies"
-        "Web Development Best Practices"
-        "Deployment Automation Guide"
-        "Template Engine Comparison"
-        "Asset Pipeline Configuration"
-        "SEO for Static Sites"
-    )
-    local base_title="${titles[$((RANDOM % ${#titles[@]}))]}"
-    echo "${base_title} - Part ${index}"
+emit_code_block() {
+    local idx=$1
+    echo '```'"${CODE_LANGS[$idx]}"
+    echo "${CODE_SNIPPETS[$idx]}"
+    echo '```'
+    echo ""
 }
 
-# Generate a date N days ago (cross-platform)
-generate_date() {
-    local days_ago=$1
-    if date -v-${days_ago}d +%Y-%m-%d 2>/dev/null; then
-        return
-    elif date -d "${days_ago} days ago" +%Y-%m-%d 2>/dev/null; then
-        return
-    else
-        # Fallback: calculate manually
-        local year=2024
-        local month=1
-        local day=$((1 + (days_ago % 28)))
-        printf "%04d-%02d-%02d" $year $month $day
+generate_body() {
+    local i=$1
+    local class=$2
+    local title
+    title=$(page_title "$i")
+
+    # Seed bash's PRNG per page: body depends only on (SEED, i), never on COUNT.
+    RANDOM=$((SEED + i))
+
+    echo "# ${title}"
+    echo ""
+    emit_paragraphs $((3 + RANDOM % 3))
+    echo "## Section One"
+    echo ""
+    emit_paragraphs $((3 + RANDOM % 3))
+    if [ "$class" = "code" ]; then emit_code_block $((i % 6)); fi
+    echo "## Section Two"
+    echo ""
+    emit_paragraphs $((3 + RANDOM % 3))
+    if [ "$class" = "code" ]; then emit_code_block $(((i + 2) % 6)); fi
+    echo "## Conclusion"
+    echo ""
+    emit_paragraphs 1
+    if [ "$class" = "code" ]; then emit_code_block $(((i + 4) % 6)); fi
+}
+
+ensure_corpus() {
+    local class corpus_dir i body_file missing=0
+    class=$(corpus_class)
+    corpus_dir="${CORPUS_ROOT}/${class}"
+    mkdir -p "$corpus_dir"
+
+    for i in $(seq 1 "$COUNT"); do
+        body_file="${corpus_dir}/$(printf "%05d" "$i").md"
+        if [ ! -f "$body_file" ]; then
+            generate_body "$i" "$class" > "$body_file"
+            missing=$((missing + 1))
+        fi
+    done
+
+    if [ "$missing" -gt 0 ]; then
+        log "Corpus: generated ${missing} new bodies in ${corpus_dir}"
     fi
+    CORPUS_DIR_RESOLVED="$corpus_dir"
 }
 
-# Generate content for Hugo
+corpus_file() {
+    printf "%s/%05d.md" "$CORPUS_DIR_RESOLVED" "$1"
+}
+
+# =============================================================================
+# Per-SSG emitters: front matter + shared body. Never overwrite existing
+# non-content files (configs/templates come from sites/ and scenarios/).
+# =============================================================================
+
+with_tags() {
+    # true when the scenario carries taxonomy metadata
+    [ "$SCENARIO" != "minimal" ]
+}
+
 generate_hugo_content() {
-    local content_dir="${OUTPUT_DIR}/content/posts"
-    mkdir -p "$content_dir"
-
-    log "Generating ${COUNT} Hugo posts..."
-
-    for i in $(seq 1 $COUNT); do
-        local date=$(generate_date $i)
-        local title=$(generate_title $i)
-        local slug="post-${i}"
-        local filename="${content_dir}/${slug}.md"
-
-        cat > "$filename" << EOF
----
-title: "${title}"
-date: ${date}
-draft: false
-tags: ["benchmark", "test", "post-${i}"]
-categories: ["benchmark"]
----
-
-# ${title}
-
-$(generate_content)
-
-## Section One
-
-$(generate_content)
-
-## Section Two
-
-$(generate_content)
-
-## Conclusion
-
-$(generate_paragraph)
-EOF
+    local dir="${OUTPUT_DIR}/content/posts" i date title tags t1 t2
+    mkdir -p "$dir"
+    for i in $(seq 1 "$COUNT"); do
+        date=$(page_date "$i"); title=$(page_title "$i")
+        {
+            echo "---"
+            echo "title: \"${title}\""
+            echo "date: ${date}"
+            echo "draft: false"
+            if with_tags; then
+                tags=$(page_tags "$i"); t1=${tags%% *}; t2=${tags##* }
+                echo "tags: [\"${t1}\", \"${t2}\"]"
+            fi
+            echo "---"
+            echo ""
+            cat "$(corpus_file "$i")"
+        } > "${dir}/post-${i}.md"
     done
-
-    log_success "Generated ${COUNT} Hugo posts in ${content_dir}"
 }
 
-# Generate content for Zola
 generate_zola_content() {
-    local content_dir="${OUTPUT_DIR}/content/posts"
-    mkdir -p "$content_dir"
-
-    # Create section index
-    cat > "${content_dir}/_index.md" << 'EOF'
+    local dir="${OUTPUT_DIR}/content/posts" i date title tags t1 t2
+    mkdir -p "$dir"
+    if [ ! -f "${dir}/_index.md" ]; then
+        cat > "${dir}/_index.md" << 'EOF'
 +++
 title = "Posts"
 sort_by = "date"
@@ -202,654 +300,252 @@ template = "section.html"
 page_template = "page.html"
 +++
 EOF
-
-    log "Generating ${COUNT} Zola posts..."
-
-    for i in $(seq 1 $COUNT); do
-        local date=$(generate_date $i)
-        local title=$(generate_title $i)
-        local slug="post-${i}"
-        local filename="${content_dir}/${slug}.md"
-
-        cat > "$filename" << EOF
-+++
-title = "${title}"
-date = ${date}
-[taxonomies]
-tags = ["benchmark", "test"]
-+++
-
-# ${title}
-
-$(generate_content)
-
-## Section One
-
-$(generate_content)
-
-## Section Two
-
-$(generate_content)
-
-## Conclusion
-
-$(generate_paragraph)
-EOF
+    fi
+    for i in $(seq 1 "$COUNT"); do
+        date=$(page_date "$i"); title=$(page_title "$i")
+        {
+            echo "+++"
+            echo "title = \"${title}\""
+            echo "date = ${date}"
+            if with_tags; then
+                tags=$(page_tags "$i"); t1=${tags%% *}; t2=${tags##* }
+                echo "[taxonomies]"
+                echo "tags = [\"${t1}\", \"${t2}\"]"
+            fi
+            echo "+++"
+            echo ""
+            cat "$(corpus_file "$i")"
+        } > "${dir}/post-${i}.md"
     done
-
-    log_success "Generated ${COUNT} Zola posts in ${content_dir}"
 }
 
-# Generate content for Jekyll
 generate_jekyll_content() {
-    local content_dir="${OUTPUT_DIR}/_posts"
-    mkdir -p "$content_dir"
-
-    log "Generating ${COUNT} Jekyll posts..."
-
-    for i in $(seq 1 $COUNT); do
-        local date=$(generate_date $i)
-        local title=$(generate_title $i)
-        local slug="post-${i}"
-        local filename="${content_dir}/${date}-${slug}.md"
-
-        cat > "$filename" << EOF
----
-layout: post
-title: "${title}"
-date: ${date}
-tags: [benchmark, test]
-categories: benchmark
----
-
-# ${title}
-
-$(generate_content)
-
-## Section One
-
-$(generate_content)
-
-## Section Two
-
-$(generate_content)
-
-## Conclusion
-
-$(generate_paragraph)
-EOF
+    local dir="${OUTPUT_DIR}/_posts" i date title tags t1 t2
+    mkdir -p "$dir"
+    for i in $(seq 1 "$COUNT"); do
+        date=$(page_date "$i"); title=$(page_title "$i")
+        {
+            echo "---"
+            echo "title: \"${title}\""
+            echo "date: ${date}"
+            if with_tags; then
+                tags=$(page_tags "$i"); t1=${tags%% *}; t2=${tags##* }
+                echo "tags: [${t1}, ${t2}]"
+            fi
+            echo "---"
+            echo ""
+            cat "$(corpus_file "$i")"
+        } > "${dir}/${date}-post-${i}.md"
     done
-
-    # Create Gemfile if it doesn't exist
-    if [ ! -f "${OUTPUT_DIR}/Gemfile" ]; then
-        cat > "${OUTPUT_DIR}/Gemfile" << 'EOF'
-source "https://rubygems.org"
-gem "jekyll", "~> 4.3"
-gem "webrick"
-EOF
-    fi
-
-    log_success "Generated ${COUNT} Jekyll posts in ${content_dir}"
 }
 
-# Generate content for Blades
 generate_blades_content() {
-    local content_dir="${OUTPUT_DIR}/content"
-    mkdir -p "$content_dir"
-
-    log "Generating ${COUNT} Blades pages..."
-
-    for i in $(seq 1 $COUNT); do
-        local date=$(generate_date $i)
-        local title=$(generate_title $i)
-        local slug="post-${i}"
-        local filename="${content_dir}/${slug}.md"
-
-        cat > "$filename" << EOF
-+++
-title = "${title}"
-date = "${date}"
-[taxonomies]
-tags = ["benchmark", "test"]
-categories = ["benchmark"]
-+++
-
-# ${title}
-
-$(generate_content)
-
-## Section One
-
-$(generate_content)
-
-## Section Two
-
-$(generate_content)
-
-## Conclusion
-
-$(generate_paragraph)
-EOF
+    local dir="${OUTPUT_DIR}/content" i date title tags t1 t2
+    mkdir -p "$dir"
+    for i in $(seq 1 "$COUNT"); do
+        date=$(page_date "$i"); title=$(page_title "$i")
+        {
+            echo "+++"
+            echo "title = \"${title}\""
+            echo "date = \"${date}\""
+            if with_tags; then
+                tags=$(page_tags "$i"); t1=${tags%% *}; t2=${tags##* }
+                echo "[taxonomies]"
+                echo "tags = [\"${t1}\", \"${t2}\"]"
+            fi
+            echo "+++"
+            echo ""
+            cat "$(corpus_file "$i")"
+        } > "${dir}/post-${i}.md"
     done
-
-    # Create minimal template if needed
-    local template_dir="${OUTPUT_DIR}/templates"
-    mkdir -p "$template_dir"
-
-    if [ ! -f "${template_dir}/page.html" ]; then
-        cat > "${template_dir}/page.html" << 'EOF'
-<!DOCTYPE html>
-<html>
-<head>
-    <title>{{ page.title }}</title>
-</head>
-<body>
-    <h1>{{ page.title }}</h1>
-    {{ page.content }}
-</body>
-</html>
-EOF
-    fi
-
-    log_success "Generated ${COUNT} Blades pages in ${content_dir}"
 }
 
-# Generate content for Hwaro
 generate_hwaro_content() {
-    local content_dir="${OUTPUT_DIR}/content/posts"
-    mkdir -p "$content_dir"
-
-    log "Generating ${COUNT} Hwaro posts..."
-
-    # Create hwaro config if not exists (use config.toml, not hwaro.toml)
-    if [ ! -f "${OUTPUT_DIR}/config.toml" ]; then
-        cat > "${OUTPUT_DIR}/config.toml" << 'EOF'
-title = "SSG Benchmark Site"
-description = "Benchmark test site"
-base_url = ""
-
-[plugins]
-processors = ["markdown"]
-
-[highlight]
-enabled = false
-
-[search]
-enabled = false
-
-[pagination]
-enabled = false
-
-[[taxonomies]]
-name = "tags"
-feed = false
-sitemap = false
-
-[sitemap]
-enabled = false
-
-[robots]
-enabled = false
-
-[llms]
-enabled = false
-
-[feeds]
-enabled = false
-
-[markdown]
-safe = false
-
-[auto_includes]
-enabled = false
-EOF
-    fi
-
-    for i in $(seq 1 $COUNT); do
-        local date=$(generate_date $i)
-        local title=$(generate_title $i)
-        local slug="post-${i}"
-        local filename="${content_dir}/${slug}.md"
-
-        # Hwaro uses TOML front matter with +++ delimiters
-        cat > "$filename" << EOF
-+++
-title = "${title}"
-date = "${date}"
-
-[taxonomies]
-tags = ["benchmark", "test"]
-+++
-
-# ${title}
-
-$(generate_content)
-
-## Section One
-
-$(generate_content)
-
-## Section Two
-
-$(generate_content)
-
-## Conclusion
-
-$(generate_paragraph)
-EOF
+    local dir="${OUTPUT_DIR}/content/posts" i date title tags t1 t2
+    mkdir -p "$dir"
+    for i in $(seq 1 "$COUNT"); do
+        date=$(page_date "$i"); title=$(page_title "$i")
+        {
+            echo "+++"
+            echo "title = \"${title}\""
+            echo "date = \"${date}\""
+            if with_tags; then
+                tags=$(page_tags "$i"); t1=${tags%% *}; t2=${tags##* }
+                echo ""
+                echo "[taxonomies]"
+                echo "tags = [\"${t1}\", \"${t2}\"]"
+            fi
+            echo "+++"
+            echo ""
+            cat "$(corpus_file "$i")"
+        } > "${dir}/post-${i}.md"
     done
-
-    # Create minimal template structure for Hwaro
-    local template_dir="${OUTPUT_DIR}/templates"
-    mkdir -p "$template_dir"
-
-    if [ ! -f "${template_dir}/page.html" ]; then
-        cat > "${template_dir}/page.html" << 'EOF'
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>{{ page.title }} | {{ site.title }}</title>
-</head>
-<body>
-    <article>
-        <h1>{{ page.title }}</h1>
-        {{ content }}
-    </article>
-</body>
-</html>
-EOF
-    fi
-
-    if [ ! -f "${template_dir}/index.html" ]; then
-        cat > "${template_dir}/index.html" << 'EOF'
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>{{ site.title }}</title>
-</head>
-<body>
-    <h1>{{ site.title }}</h1>
-    <ul>
-    {% for page in pages %}
-        <li><a href="{{ page.permalink }}">{{ page.title }}</a></li>
-    {% endfor %}
-    </ul>
-</body>
-</html>
-EOF
-    fi
-
-    if [ ! -f "${template_dir}/section.html" ]; then
-        cat > "${template_dir}/section.html" << 'EOF'
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>{{ section.title }} | {{ site.title }}</title>
-</head>
-<body>
-    <h1>{{ section.title }}</h1>
-    <ul>
-    {% for page in section.pages %}
-        <li><a href="{{ page.permalink }}">{{ page.title }}</a></li>
-    {% endfor %}
-    </ul>
-</body>
-</html>
-EOF
-    fi
-
-    log_success "Generated ${COUNT} Hwaro posts in ${content_dir}"
 }
 
-# Generate content for Eleventy
 generate_eleventy_content() {
-    local content_dir="${OUTPUT_DIR}/posts"
-    mkdir -p "$content_dir"
-
-    log "Generating ${COUNT} Eleventy posts..."
-
-    # Create directory data file for auto-tagging
-    if [ ! -f "${content_dir}/posts.json" ]; then
-        cat > "${content_dir}/posts.json" << 'EOF'
+    local dir="${OUTPUT_DIR}/posts" i date title tags t1 t2
+    mkdir -p "$dir"
+    # Directory data: layout + the "post" collection tag for every post.
+    if [ ! -f "${dir}/posts.json" ]; then
+        cat > "${dir}/posts.json" << 'EOF'
 {
   "layout": "post.njk",
   "tags": "post"
 }
 EOF
     fi
-
-    for i in $(seq 1 $COUNT); do
-        local date=$(generate_date $i)
-        local title=$(generate_title $i)
-        local slug="post-${i}"
-        local filename="${content_dir}/${slug}.md"
-
-        cat > "$filename" << EOF
----
-title: "${title}"
-date: ${date}
-tags: ["benchmark", "test"]
----
-
-# ${title}
-
-$(generate_content)
-
-## Section One
-
-$(generate_content)
-
-## Section Two
-
-$(generate_content)
-
-## Conclusion
-
-$(generate_paragraph)
-EOF
+    for i in $(seq 1 "$COUNT"); do
+        date=$(page_date "$i"); title=$(page_title "$i")
+        {
+            echo "---"
+            echo "title: \"${title}\""
+            echo "date: ${date}"
+            if with_tags; then
+                # Front-matter tags replace directory-data tags, so keep "post".
+                tags=$(page_tags "$i"); t1=${tags%% *}; t2=${tags##* }
+                echo "tags: [\"post\", \"${t1}\", \"${t2}\"]"
+            fi
+            echo "---"
+            echo ""
+            cat "$(corpus_file "$i")"
+        } > "${dir}/post-${i}.md"
     done
-
-    log_success "Generated ${COUNT} Eleventy posts in ${content_dir}"
 }
 
-# Generate content for Pelican
 generate_pelican_content() {
-    local content_dir="${OUTPUT_DIR}/content"
-    mkdir -p "$content_dir"
-
-    log "Generating ${COUNT} Pelican articles..."
-
-    for i in $(seq 1 $COUNT); do
-        local date=$(generate_date $i)
-        local title=$(generate_title $i)
-        local slug="post-${i}"
-        local filename="${content_dir}/${slug}.md"
-
-        # Pelican uses its own native metadata format (not YAML frontmatter)
-        cat > "$filename" << EOF
-Title: ${title}
-Date: ${date}
-Category: benchmark
-Tags: benchmark, test
-Slug: ${slug}
-
-# ${title}
-
-$(generate_content)
-
-## Section One
-
-$(generate_content)
-
-## Section Two
-
-$(generate_content)
-
-## Conclusion
-
-$(generate_paragraph)
-EOF
+    local dir="${OUTPUT_DIR}/content" i date title tags t1 t2
+    mkdir -p "$dir"
+    for i in $(seq 1 "$COUNT"); do
+        date=$(page_date "$i"); title=$(page_title "$i")
+        {
+            echo "Title: ${title}"
+            echo "Date: ${date}"
+            echo "Slug: post-${i}"
+            if with_tags; then
+                tags=$(page_tags "$i"); t1=${tags%% *}; t2=${tags##* }
+                echo "Tags: ${t1}, ${t2}"
+            fi
+            echo ""
+            cat "$(corpus_file "$i")"
+        } > "${dir}/post-${i}.md"
     done
-
-    log_success "Generated ${COUNT} Pelican articles in ${content_dir}"
 }
 
-# Generate content for Hexo
 generate_hexo_content() {
-    local content_dir="${OUTPUT_DIR}/source/_posts"
-    mkdir -p "$content_dir"
-
-    log "Generating ${COUNT} Hexo posts..."
-
-    # Install npm dependencies if package.json exists (before build timing)
-    if [ -f "${OUTPUT_DIR}/package.json" ] && [ ! -d "${OUTPUT_DIR}/node_modules" ]; then
-        log "Installing Hexo npm dependencies..."
-        cd "$OUTPUT_DIR" && npm install --silent 2>/dev/null || npm install
-        cd - > /dev/null
-    fi
-
-    for i in $(seq 1 $COUNT); do
-        local date=$(generate_date $i)
-        local title=$(generate_title $i)
-        local slug="post-${i}"
-        local filename="${content_dir}/${slug}.md"
-
-        cat > "$filename" << EOF
----
-title: "${title}"
-date: ${date}
-tags:
-  - benchmark
-  - test
-categories:
-  - benchmark
----
-
-# ${title}
-
-$(generate_content)
-
-## Section One
-
-$(generate_content)
-
-## Section Two
-
-$(generate_content)
-
-## Conclusion
-
-$(generate_paragraph)
-EOF
+    local dir="${OUTPUT_DIR}/source/_posts" i date title tags t1 t2
+    mkdir -p "$dir"
+    for i in $(seq 1 "$COUNT"); do
+        date=$(page_date "$i"); title=$(page_title "$i")
+        {
+            echo "---"
+            echo "title: \"${title}\""
+            echo "date: ${date}"
+            if with_tags; then
+                tags=$(page_tags "$i"); t1=${tags%% *}; t2=${tags##* }
+                echo "tags:"
+                echo "  - ${t1}"
+                echo "  - ${t2}"
+            fi
+            echo "---"
+            echo ""
+            cat "$(corpus_file "$i")"
+        } > "${dir}/post-${i}.md"
     done
-
-    log_success "Generated ${COUNT} Hexo posts in ${content_dir}"
 }
 
-# Generate content for Gatsby
 generate_gatsby_content() {
-    local content_dir="${OUTPUT_DIR}/src/posts"
-    mkdir -p "$content_dir"
-
-    log "Generating ${COUNT} Gatsby posts..."
-
-    # Install npm dependencies if package.json exists (before build timing)
-    if [ -f "${OUTPUT_DIR}/package.json" ] && [ ! -d "${OUTPUT_DIR}/node_modules" ]; then
-        log "Installing Gatsby npm dependencies..."
-        cd "$OUTPUT_DIR" && npm install --silent 2>/dev/null || npm install
-        cd - > /dev/null
-    fi
-
-    for i in $(seq 1 $COUNT); do
-        local date=$(generate_date $i)
-        local title=$(generate_title $i)
-        local slug="post-${i}"
-        local filename="${content_dir}/${slug}.md"
-
-        cat > "$filename" << EOF
----
-title: "${title}"
-date: ${date}
-slug: "${slug}"
-tags:
-  - benchmark
-  - test
----
-
-# ${title}
-
-$(generate_content)
-
-## Section One
-
-$(generate_content)
-
-## Section Two
-
-$(generate_content)
-
-## Conclusion
-
-$(generate_paragraph)
-EOF
+    local dir="${OUTPUT_DIR}/src/posts" i date title tags t1 t2
+    mkdir -p "$dir"
+    for i in $(seq 1 "$COUNT"); do
+        date=$(page_date "$i"); title=$(page_title "$i")
+        {
+            echo "---"
+            echo "title: \"${title}\""
+            echo "date: ${date}"
+            echo "slug: \"post-${i}\""
+            if with_tags; then
+                tags=$(page_tags "$i"); t1=${tags%% *}; t2=${tags##* }
+                echo "tags: [\"${t1}\", \"${t2}\"]"
+            fi
+            echo "---"
+            echo ""
+            cat "$(corpus_file "$i")"
+        } > "${dir}/post-${i}.md"
     done
-
-    log_success "Generated ${COUNT} Gatsby posts in ${content_dir}"
 }
 
-# Generate content for Astro
 generate_astro_content() {
-    local content_dir="${OUTPUT_DIR}/src/pages/posts"
-    mkdir -p "$content_dir"
-
-    log "Generating ${COUNT} Astro posts..."
-
-    # Install npm dependencies if package.json exists (before build timing)
-    if [ -f "${OUTPUT_DIR}/package.json" ] && [ ! -d "${OUTPUT_DIR}/node_modules" ]; then
-        log "Installing Astro npm dependencies..."
-        cd "$OUTPUT_DIR" && npm install --silent 2>/dev/null || npm install
-        cd - > /dev/null
-    fi
-
-    for i in $(seq 1 $COUNT); do
-        local date=$(generate_date $i)
-        local title=$(generate_title $i)
-        local slug="post-${i}"
-        local filename="${content_dir}/${slug}.md"
-
-        cat > "$filename" << EOF
----
-layout: ../../layouts/Base.astro
-title: "${title}"
-date: ${date}
-tags: ["benchmark", "test"]
----
-
-# ${title}
-
-$(generate_content)
-
-## Section One
-
-$(generate_content)
-
-## Section Two
-
-$(generate_content)
-
-## Conclusion
-
-$(generate_paragraph)
-EOF
+    local dir="${OUTPUT_DIR}/src/pages/posts" i date title tags t1 t2
+    mkdir -p "$dir"
+    for i in $(seq 1 "$COUNT"); do
+        date=$(page_date "$i"); title=$(page_title "$i")
+        {
+            echo "---"
+            echo "layout: ../../layouts/Base.astro"
+            echo "title: \"${title}\""
+            echo "date: ${date}"
+            if with_tags; then
+                tags=$(page_tags "$i"); t1=${tags%% *}; t2=${tags##* }
+                echo "tags: [\"${t1}\", \"${t2}\"]"
+            fi
+            echo "---"
+            echo ""
+            cat "$(corpus_file "$i")"
+        } > "${dir}/post-${i}.md"
     done
-
-    log_success "Generated ${COUNT} Astro posts in ${content_dir}"
 }
 
-# Generate content for Docusaurus
 generate_docusaurus_content() {
-    local content_dir="${OUTPUT_DIR}/blog"
-    mkdir -p "$content_dir"
-
-    log "Generating ${COUNT} Docusaurus posts..."
-
-    # Install npm dependencies if package.json exists (before build timing)
-    if [ -f "${OUTPUT_DIR}/package.json" ] && [ ! -d "${OUTPUT_DIR}/node_modules" ]; then
-        log "Installing Docusaurus npm dependencies..."
-        cd "$OUTPUT_DIR" && npm install --silent 2>/dev/null || npm install
-        cd - > /dev/null
-    fi
-
-    for i in $(seq 1 $COUNT); do
-        local date=$(generate_date $i)
-        local title=$(generate_title $i)
-        local slug="post-${i}"
-        local filename="${content_dir}/${date}-${slug}.md"
-
-        cat > "$filename" << EOF
----
-slug: ${slug}
-title: "${title}"
-date: ${date}
-authors: [benchmark]
-tags: [benchmark, test]
----
-
-# ${title}
-
-$(generate_content)
-
-## Section One
-
-$(generate_content)
-
-{/* truncate */}
-
-## Section Two
-
-$(generate_content)
-
-## Conclusion
-
-$(generate_paragraph)
-EOF
+    local dir="${OUTPUT_DIR}/blog" i date title tags t1 t2
+    mkdir -p "$dir"
+    for i in $(seq 1 "$COUNT"); do
+        date=$(page_date "$i"); title=$(page_title "$i")
+        {
+            echo "---"
+            echo "slug: post-${i}"
+            echo "title: \"${title}\""
+            echo "date: ${date}"
+            if with_tags; then
+                tags=$(page_tags "$i"); t1=${tags%% *}; t2=${tags##* }
+                echo "tags: [${t1}, ${t2}]"
+            fi
+            echo "---"
+            echo ""
+            cat "$(corpus_file "$i")"
+        } > "${dir}/${date}-post-${i}.md"
     done
-
-    log_success "Generated ${COUNT} Docusaurus posts in ${content_dir}"
 }
 
-# Main execution
+# =============================================================================
+# Main
+# =============================================================================
+
 main() {
-    log "Content Generator for SSG Benchmark"
-    log "SSG: ${SSG}"
-    log "Count: ${COUNT}"
-    log "Output: ${OUTPUT_DIR}"
+    log "Content Generator (scenario=${SCENARIO}, seed=${SEED})"
+    log "SSG: ${SSG} | Count: ${COUNT} | Output: ${OUTPUT_DIR}"
+
+    ensure_corpus
 
     case $SSG in
-        hugo)
-            generate_hugo_content
-            ;;
-        zola)
-            generate_zola_content
-            ;;
-        jekyll)
-            generate_jekyll_content
-            ;;
-        blades)
-            generate_blades_content
-            ;;
-        hwaro)
-            generate_hwaro_content
-            ;;
-        eleventy)
-            generate_eleventy_content
-            ;;
-        pelican)
-            generate_pelican_content
-            ;;
-        hexo)
-            generate_hexo_content
-            ;;
-        gatsby)
-            generate_gatsby_content
-            ;;
-        astro)
-            generate_astro_content
-            ;;
-        docusaurus)
-            generate_docusaurus_content
-            ;;
+        hugo) generate_hugo_content ;;
+        zola) generate_zola_content ;;
+        jekyll) generate_jekyll_content ;;
+        blades) generate_blades_content ;;
+        hwaro) generate_hwaro_content ;;
+        eleventy) generate_eleventy_content ;;
+        pelican) generate_pelican_content ;;
+        hexo) generate_hexo_content ;;
+        gatsby) generate_gatsby_content ;;
+        astro) generate_astro_content ;;
+        docusaurus) generate_docusaurus_content ;;
         *)
             log_error "Unknown SSG: ${SSG}"
-            log_error "Supported SSGs: hugo, zola, jekyll, blades, hwaro, eleventy, pelican, hexo, gatsby, astro, docusaurus"
+            log_error "Supported: hugo, zola, jekyll, blades, hwaro, eleventy, pelican, hexo, gatsby, astro, docusaurus"
             exit 1
             ;;
     esac
 
-    log_success "Content generation complete!"
+    log_success "Generated ${COUNT} pages for ${SSG} (${SCENARIO})"
 }
 
 main "$@"

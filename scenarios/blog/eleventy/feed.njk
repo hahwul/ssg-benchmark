@@ -1,0 +1,24 @@
+---
+permalink: atom.xml
+eleventyExcludeFromCollections: true
+---
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+    <title>SSG Benchmark Site</title>
+    <subtitle>Benchmark site for testing SSG performance</subtitle>
+    <id>http://example.com/</id>
+    <link href="http://example.com/atom.xml" rel="self"/>
+    <link href="http://example.com/"/>
+    <updated>2025-01-01T00:00:00Z</updated>
+    {%- for post in collections.post | reverse %}
+    {%- if loop.index <= 20 %}
+    <entry>
+        <title>{{ post.data.title }}</title>
+        <link href="http://example.com{{ post.url }}"/>
+        <id>http://example.com{{ post.url }}</id>
+        <updated>{{ post.date | dateFormat('iso') }}T00:00:00Z</updated>
+        <content type="html"><![CDATA[{{ post.templateContent }}]]></content>
+    </entry>
+    {%- endif %}
+    {%- endfor %}
+</feed>

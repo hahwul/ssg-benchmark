@@ -1,0 +1,38 @@
+# Hugo — blog scenario: tag pages + pagination(10) + atom-equivalent RSS feed.
+# Sitemap stays off across all scenarios (Zola's forced sitemap is the one
+# documented deviation).
+
+baseURL = "http://example.com/"
+languageCode = "en-us"
+title = "SSG Benchmark Site"
+
+buildDrafts = false
+buildFuture = false
+buildExpired = false
+enableGitInfo = false
+enableRobotsTXT = false
+
+disableKinds = ["sitemap"]
+paginate = 10
+
+[taxonomies]
+  tag = "tags"
+
+[params]
+  description = "Benchmark site for testing SSG performance"
+
+[markup]
+  [markup.goldmark]
+    [markup.goldmark.renderer]
+      unsafe = true
+
+[outputs]
+  home = ["HTML", "RSS"]
+  section = ["HTML"]
+  page = ["HTML"]
+  taxonomy = ["HTML"]
+  term = ["HTML"]
+
+[services]
+  [services.rss]
+    limit = 20

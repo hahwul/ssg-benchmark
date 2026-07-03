@@ -10,9 +10,22 @@ This repository is for benchmarking Static Site Generators (SSGs), primarily to 
 
 ## Benchmarks Measured
 
-- Build time for various site sizes (10, 100, 1000, 5000+ pages)
-- Memory/CPU usage
-- Output file generation count
+- Build time for various site sizes (10, 100, 1000, 5000+ pages), measured
+  **inside the container** (no Docker start/stop overhead), median of N cold builds
+- Peak memory usage (container cgroup)
+- Output HTML file count, with a cross-SSG **parity check** that flags runs
+  where SSGs did different amounts of work
+
+Three workload scenarios isolate different subsystems (see [METHODOLOGY.md](METHODOLOGY.md)):
+
+| Scenario | Workload |
+|----------|----------|
+| `minimal` | Pure markdown → HTML pipeline, all extras off |
+| `blog` | Realistic blog: tag pages, pagination (10/page), feed |
+| `heavy` | Blog + fenced code blocks with build-time syntax highlighting |
+
+All SSGs build **byte-identical markdown bodies** generated from a fixed seed,
+so results are reproducible and directly comparable within a scenario.
 
 ## Target SSGs
 
@@ -113,8 +126,11 @@ ITERATIONS=5 \
 SSGS="hugo zola" \
 ./scripts/benchmark.sh
 
-# Generate test content manually
-./scripts/generate-content.sh --ssg hugo --count 1000 --output ./test-site
+# Run the blog and heavy scenarios (see METHODOLOGY.md)
+./scripts/benchmark.sh -n blog,heavy -s hugo,zola,hwaro
+
+# Generate test content manually (deterministic, seeded)
+./scripts/generate-content.sh --ssg hugo --count 1000 --scenario blog --output ./test-site
 
 # Run without Docker (requires local SSG installations)
 USE_DOCKER=false ./scripts/benchmark.sh
@@ -141,9 +157,14 @@ docker-compose --profile benchmark up benchmark-runner
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `PAGE_COUNTS` | `10 100 1000 5000` | Space-separated list of page counts to test |
-| `ITERATIONS` | `3` | Number of iterations per benchmark |
-| `SSGS` | `hugo zola jekyll blades hwaro` | Space-separated list of SSGs to test |
+| `ITERATIONS` | `3` | Recorded iterations per benchmark (median reported) |
+| `WARMUP` | `1` | Unrecorded warmup builds per combination |
+| `SCENARIOS` | `minimal` | Scenarios to run: `minimal`, `blog`, `heavy` |
+| `SSGS` | all supported | Space-separated list of SSGs to test |
+| `SEED` | `42` | Content generation seed (determinism) |
 | `USE_DOCKER` | `true` | Use Docker containers for isolation |
+| `DOCKER_CPUS` | `4` | CPU limit per benchmark container |
+| `DOCKER_MEMORY` | `4g` | Memory limit per benchmark container |
 | `VERBOSE` | `false` | Enable verbose output |
 
 ### Example Configurations
@@ -151,6 +172,9 @@ docker-compose --profile benchmark up benchmark-runner
 ```bash
 # Test with large page counts
 PAGE_COUNTS="1000 5000 10000" make benchmark
+
+# Run all three scenarios
+SCENARIOS="minimal blog heavy" make benchmark
 
 # Test only Rust-based SSGs
 SSGS="zola blades hwaro" make benchmark
@@ -167,25 +191,23 @@ USE_DOCKER=false make benchmark
 ```
 ssg-benchmark/
 ├── docker/                    # Dockerfiles for each SSG
-│   ├── Dockerfile.hugo
-│   ├── Dockerfile.zola
-│   ├── Dockerfile.jekyll
-│   ├── Dockerfile.blades
-│   └── Dockerfile.hwaro
 ├── scripts/                   # Benchmark scripts
-│   ├── benchmark.sh           # Main benchmark runner
-│   ├── benchmark-runner.sh    # Container benchmark helper
-│   └── generate-content.sh    # Test content generator
-├── sites/                     # Site templates for each SSG
-│   ├── hugo/
-│   ├── zola/
-│   ├── jekyll/
-│   ├── blades/
-│   └── hwaro/
+│   ├── benchmark.sh           # Main benchmark runner (v2 methodology)
+│   ├── generate-content.sh    # Deterministic content generator (seeded corpus)
+│   ├── generate-site.sh       # Dashboard data.json generator
+│   └── report.sh              # Report generator
+├── sites/                     # Base site templates (minimal scenario)
+│   ├── hugo/ zola/ jekyll/ hwaro/ ...
+├── scenarios/                 # Scenario overlays (copied over the base)
+│   ├── blog/<ssg>/            # tags + pagination + feed configs/templates
+│   └── heavy/<ssg>/           # blog + build-time syntax highlighting
+├── .corpus/                   # Cached deterministic markdown bodies (gitignored)
 ├── results/                   # Benchmark results (timestamped)
 │   └── YYYYMMDD_HHMMSS/
-│       ├── results.csv
-│       └── summary.md
+│       ├── results.csv        # per-iteration data
+│       ├── summary.md         # medians + output parity check
+│       └── config.json        # run settings for reproducibility
+├── METHODOLOGY.md             # Measurement methodology & known deviations
 ├── docker-compose.yml
 ├── Makefile
 └── README.md
@@ -196,27 +218,33 @@ ssg-benchmark/
 ### CSV Output (`results.csv`)
 
 ```csv
-ssg,page_count,iteration,build_time_ms,peak_memory_kb,cpu_percent,status
-hugo,100,1,245,45000,85,success
-zola,100,1,180,38000,90,success
+ssg,scenario,page_count,iteration,build_time_ms,peak_memory_kb,output_files,status
+hugo,blog,100,1,85,37812,123,success
+zola,blog,100,1,66,23244,124,success
 ...
 ```
 
 ### Summary Report (`summary.md`)
 
 The benchmark generates a markdown summary with:
-- Average build times
-- Min/Max times
-- Memory usage statistics
-- Comparison tables
+- Median/min/max build times per scenario
+- Peak memory statistics
+- Output HTML counts and the cross-SSG parity check
+
+Each run directory also contains `config.json` with every knob used for the
+run (seed, iterations, Docker limits, host info) for reproducibility.
 
 ## Adding a New SSG
 
 1. Create a Dockerfile in `docker/Dockerfile.<ssg-name>`
 2. Create a site template in `sites/<ssg-name>/`
-3. Add content generation logic in `scripts/generate-content.sh`
-4. Add build command detection in `scripts/benchmark.sh`
-5. Update `SSGS` variable or pass it as parameter
+3. Add a front-matter emitter in `scripts/generate-content.sh` (bodies come
+   from the shared corpus — do not generate your own)
+4. Add the build command and output directory in `scripts/benchmark.sh`
+5. To support `blog`/`heavy`, add overlays under `scenarios/{blog,heavy}/<ssg>/`
+   and add the SSG to the support matrix in `scripts/benchmark.sh`
+6. Run a small benchmark and check the output parity section in `summary.md` —
+   the HTML count must line up with the other SSGs
 
 ## Interpreting Results
 

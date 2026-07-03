@@ -133,6 +133,32 @@ parse_results() {
     tail -n +2 "$csv_file"
 }
 
+# --- Schema adapter -----------------------------------------------------
+# v2 CSVs (ssg,scenario,page_count,iteration,build_time_ms,peak_memory_kb,
+# output_files,status) are reported per scenario. Each scenario is projected
+# into a v1-shaped temp CSV so the report generators below stay unchanged.
+
+get_result_scenarios() {
+    local csv_file="$1"
+    if head -1 "$csv_file" | grep -q '^ssg,scenario,'; then
+        tail -n +2 "$csv_file" | cut -d',' -f2 | sort -u
+    else
+        echo "legacy"
+    fi
+}
+
+make_v1_view() {
+    local csv_file="$1" scenario="$2" tmp
+    tmp=$(mktemp)
+    echo "ssg,page_count,iteration,build_time_ms,peak_memory_kb,cpu_percent,status" > "$tmp"
+    if head -1 "$csv_file" | grep -q '^ssg,scenario,'; then
+        awk -F',' -v s="$scenario" 'NR>1 && $2==s {print $1","$3","$4","$5","$6",0,"$8}' "$csv_file" >> "$tmp"
+    else
+        tail -n +2 "$csv_file" >> "$tmp"
+    fi
+    echo "$tmp"
+}
+
 # Calculate statistics for a specific SSG and page count
 calculate_stats() {
     local csv_file="$1"
@@ -248,7 +274,7 @@ generate_ascii_bar_chart() {
 # Generate Markdown report
 generate_markdown_report() {
     local results_dir="$1"
-    local csv_file="${results_dir}/results.csv"
+    local csv_file="${REPORT_CSV:-${results_dir}/results.csv}"
 
     local ssgs=$(get_ssgs "$csv_file")
     local page_counts=$(get_page_counts "$csv_file")
@@ -340,7 +366,7 @@ EOF
 # Generate JSON report
 generate_json_report() {
     local results_dir="$1"
-    local csv_file="${results_dir}/results.csv"
+    local csv_file="${REPORT_CSV:-${results_dir}/results.csv}"
 
     local ssgs=$(get_ssgs "$csv_file")
     local page_counts=$(get_page_counts "$csv_file")
@@ -401,7 +427,7 @@ generate_json_report() {
 # Generate HTML report
 generate_html_report() {
     local results_dir="$1"
-    local csv_file="${results_dir}/results.csv"
+    local csv_file="${REPORT_CSV:-${results_dir}/results.csv}"
 
     local ssgs=$(get_ssgs "$csv_file")
     local page_counts=$(get_page_counts "$csv_file")
@@ -533,7 +559,7 @@ EOF
 # Generate CSV summary report
 generate_csv_report() {
     local results_dir="$1"
-    local csv_file="${results_dir}/results.csv"
+    local csv_file="${REPORT_CSV:-${results_dir}/results.csv}"
 
     local ssgs=$(get_ssgs "$csv_file")
     local page_counts=$(get_page_counts "$csv_file")
@@ -559,27 +585,66 @@ main() {
     local results_dir=$(find_results_dir)
     log "Processing results from: ${results_dir}"
 
+    local csv="${results_dir}/results.csv"
+    local scenarios=$(get_result_scenarios "$csv")
+    local scenario_count=$(echo "$scenarios" | wc -w | tr -d ' ')
     local output=""
+    local scenario section
 
-    case $OUTPUT_FORMAT in
-        markdown|md)
-            output=$(generate_markdown_report "$results_dir")
-            ;;
-        json)
-            output=$(generate_json_report "$results_dir")
-            ;;
-        html)
-            output=$(generate_html_report "$results_dir")
-            ;;
-        csv)
-            output=$(generate_csv_report "$results_dir")
-            ;;
-        *)
-            log_error "Unknown format: $OUTPUT_FORMAT"
-            log_error "Supported formats: markdown, json, html, csv"
-            exit 1
-            ;;
-    esac
+    for scenario in $scenarios; do
+        REPORT_CSV=$(make_v1_view "$csv" "$scenario")
+
+        case $OUTPUT_FORMAT in
+            markdown|md)
+                section=$(generate_markdown_report "$results_dir")
+                ;;
+            json)
+                section=$(generate_json_report "$results_dir")
+                ;;
+            html)
+                section=$(generate_html_report "$results_dir")
+                ;;
+            csv)
+                section=$(generate_csv_report "$results_dir")
+                ;;
+            *)
+                log_error "Unknown format: $OUTPUT_FORMAT"
+                log_error "Supported formats: markdown, json, html, csv"
+                rm -f "$REPORT_CSV"
+                exit 1
+                ;;
+        esac
+
+        rm -f "$REPORT_CSV"
+        unset REPORT_CSV
+
+        case $OUTPUT_FORMAT in
+            markdown|md)
+                output="${output}# ═══ Scenario: ${scenario} ═══
+
+${section}
+
+"
+                ;;
+            csv)
+                if [ -z "$output" ]; then
+                    output="scenario,$(echo "$section" | head -1)
+"
+                fi
+                output="${output}$(echo "$section" | tail -n +2 | sed "s/^/${scenario},/")
+"
+                ;;
+            json|html)
+                # Single-document formats: report the first scenario only
+                output="$section"
+                if [ "$scenario_count" -gt 1 ]; then
+                    log "Multiple scenarios in results; ${OUTPUT_FORMAT} report covers scenario '${scenario}' only."
+                    log "Use -f markdown for all scenarios."
+                fi
+                break
+                ;;
+        esac
+    done
 
     if [ -n "$OUTPUT_FILE" ]; then
         echo "$output" > "$OUTPUT_FILE"

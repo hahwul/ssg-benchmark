@@ -8,6 +8,9 @@ description = "Static Site Generator Build Performance Benchmark"
   <p id="updated" class="updated"></p>
 </div>
 
+<div class="controls" id="scenarioControls"></div>
+<p class="updated" id="scenarioNote"></p>
+
 <section class="panel">
   <div class="panel-head">
     <div>
@@ -62,8 +65,9 @@ description = "Static Site Generator Build Performance Benchmark"
       <thead><tr>
         <th data-col="run">Run</th>
         <th data-col="ssg">SSG</th>
+        <th data-col="scenario">Scenario</th>
         <th data-col="page_count" class="num">Pages</th>
-        <th data-col="avg_time_ms" class="num">Avg (ms)</th>
+        <th data-col="avg_time_ms" class="num">Med (ms)</th>
         <th data-col="min_time_ms" class="num">Min (ms)</th>
         <th data-col="max_time_ms" class="num">Max (ms)</th>
       </tr></thead>

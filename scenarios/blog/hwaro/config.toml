@@ -1,0 +1,47 @@
+# =============================================================================
+# Hwaro — blog scenario: tag pages + pagination(10) + atom feed (limit 20)
+# =============================================================================
+
+title = "SSG Benchmark Site"
+description = "Benchmark site for testing SSG performance"
+base_url = "http://example.com"
+
+[plugins]
+processors = ["markdown"]
+
+[highlight]
+enabled = false
+
+[search]
+enabled = false
+
+[pagination]
+enabled = true
+per_page = 10
+
+[[taxonomies]]
+name = "tags"
+feed = false
+sitemap = false
+
+[sitemap]
+enabled = false
+
+[robots]
+enabled = false
+
+[llms]
+enabled = false
+
+[feeds]
+enabled = true
+type = "atom"
+limit = 20
+full_content = true
+sections = ["posts"]
+
+[markdown]
+safe = false
+
+[auto_includes]
+enabled = false

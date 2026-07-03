@@ -50,6 +50,8 @@ help:
 	@echo "Configuration (environment variables):"
 	@echo "  PAGE_COUNTS       Page counts to test (default: '10 100 1000 5000')"
 	@echo "  ITERATIONS        Iterations per test (default: 3)"
+	@echo "  SCENARIOS         Scenarios: minimal blog heavy (default: 'minimal')"
+	@echo "  WARMUP            Warmup builds per combination (default: 1)"
 	@echo "  SSGS              SSGs to benchmark (default: 'hugo zola jekyll hwaro eleventy pelican hexo gatsby astro docusaurus')"
 	@echo "  USE_DOCKER        Use Docker containers (default: true)"
 	@echo ""
@@ -61,6 +63,8 @@ help:
 # Configuration with defaults
 PAGE_COUNTS ?= 10 100 1000 5000
 ITERATIONS ?= 3
+SCENARIOS ?= minimal
+WARMUP ?= 1
 # Default SSGs for benchmarking (blades excluded due to build issues)
 SSGS ?= hugo zola jekyll hwaro eleventy pelican hexo gatsby astro docusaurus
 USE_DOCKER ?= true
@@ -117,8 +121,13 @@ clean:
 	done
 	@echo "Cleaned!"
 
+# Remove the cached deterministic corpus
+clean-corpus:
+	@rm -rf .corpus
+	@echo "Corpus cache cleaned!"
+
 # Deep clean including results
-clean-all: clean
+clean-all: clean clean-corpus
 	@echo "Cleaning all results..."
 	@rm -rf $(RESULTS_DIR)/*
 	@echo "All cleaned!"
@@ -130,6 +139,8 @@ benchmark: docker-build
 	USE_DOCKER=$(USE_DOCKER) \
 	PAGE_COUNTS="$(PAGE_COUNTS)" \
 	ITERATIONS=$(ITERATIONS) \
+	SCENARIOS="$(SCENARIOS)" \
+	WARMUP=$(WARMUP) \
 	SSGS="$(SSGS)" \
 	VERBOSE=$(VERBOSE) \
 	./$(SCRIPT_DIR)/benchmark.sh
@@ -141,6 +152,8 @@ quick-test:
 	USE_DOCKER=$(USE_DOCKER) \
 	PAGE_COUNTS="10" \
 	ITERATIONS=1 \
+	SCENARIOS="minimal" \
+	WARMUP=0 \
 	SSGS="hugo zola jekyll hwaro eleventy pelican hexo gatsby astro docusaurus" \
 	VERBOSE=true \
 	./$(SCRIPT_DIR)/benchmark.sh
@@ -152,6 +165,8 @@ full-test: docker-build
 	USE_DOCKER=$(USE_DOCKER) \
 	PAGE_COUNTS="10 100 1000 5000 10000" \
 	ITERATIONS=5 \
+	SCENARIOS="minimal blog heavy" \
+	WARMUP=1 \
 	SSGS="$(SSGS)" \
 	./$(SCRIPT_DIR)/benchmark.sh
 
@@ -161,6 +176,8 @@ benchmark-hugo:
 	USE_DOCKER=$(USE_DOCKER) \
 	PAGE_COUNTS="$(PAGE_COUNTS)" \
 	ITERATIONS=$(ITERATIONS) \
+	SCENARIOS="$(SCENARIOS)" \
+	WARMUP=$(WARMUP) \
 	SSGS="hugo" \
 	./$(SCRIPT_DIR)/benchmark.sh
 
@@ -169,6 +186,8 @@ benchmark-zola:
 	USE_DOCKER=$(USE_DOCKER) \
 	PAGE_COUNTS="$(PAGE_COUNTS)" \
 	ITERATIONS=$(ITERATIONS) \
+	SCENARIOS="$(SCENARIOS)" \
+	WARMUP=$(WARMUP) \
 	SSGS="zola" \
 	./$(SCRIPT_DIR)/benchmark.sh
 
@@ -177,6 +196,8 @@ benchmark-jekyll:
 	USE_DOCKER=$(USE_DOCKER) \
 	PAGE_COUNTS="$(PAGE_COUNTS)" \
 	ITERATIONS=$(ITERATIONS) \
+	SCENARIOS="$(SCENARIOS)" \
+	WARMUP=$(WARMUP) \
 	SSGS="jekyll" \
 	./$(SCRIPT_DIR)/benchmark.sh
 
@@ -185,6 +206,8 @@ benchmark-blades:
 	USE_DOCKER=$(USE_DOCKER) \
 	PAGE_COUNTS="$(PAGE_COUNTS)" \
 	ITERATIONS=$(ITERATIONS) \
+	SCENARIOS="$(SCENARIOS)" \
+	WARMUP=$(WARMUP) \
 	SSGS="blades" \
 	./$(SCRIPT_DIR)/benchmark.sh
 
@@ -193,6 +216,8 @@ benchmark-hwaro:
 	USE_DOCKER=$(USE_DOCKER) \
 	PAGE_COUNTS="$(PAGE_COUNTS)" \
 	ITERATIONS=$(ITERATIONS) \
+	SCENARIOS="$(SCENARIOS)" \
+	WARMUP=$(WARMUP) \
 	SSGS="hwaro" \
 	./$(SCRIPT_DIR)/benchmark.sh
 
@@ -201,6 +226,8 @@ benchmark-eleventy:
 	USE_DOCKER=$(USE_DOCKER) \
 	PAGE_COUNTS="$(PAGE_COUNTS)" \
 	ITERATIONS=$(ITERATIONS) \
+	SCENARIOS="$(SCENARIOS)" \
+	WARMUP=$(WARMUP) \
 	SSGS="eleventy" \
 	./$(SCRIPT_DIR)/benchmark.sh
 
@@ -209,6 +236,8 @@ benchmark-pelican:
 	USE_DOCKER=$(USE_DOCKER) \
 	PAGE_COUNTS="$(PAGE_COUNTS)" \
 	ITERATIONS=$(ITERATIONS) \
+	SCENARIOS="$(SCENARIOS)" \
+	WARMUP=$(WARMUP) \
 	SSGS="pelican" \
 	./$(SCRIPT_DIR)/benchmark.sh
 
@@ -217,6 +246,8 @@ benchmark-hexo:
 	USE_DOCKER=$(USE_DOCKER) \
 	PAGE_COUNTS="$(PAGE_COUNTS)" \
 	ITERATIONS=$(ITERATIONS) \
+	SCENARIOS="$(SCENARIOS)" \
+	WARMUP=$(WARMUP) \
 	SSGS="hexo" \
 	./$(SCRIPT_DIR)/benchmark.sh
 
@@ -225,6 +256,8 @@ benchmark-gatsby:
 	USE_DOCKER=$(USE_DOCKER) \
 	PAGE_COUNTS="$(PAGE_COUNTS)" \
 	ITERATIONS=$(ITERATIONS) \
+	SCENARIOS="$(SCENARIOS)" \
+	WARMUP=$(WARMUP) \
 	SSGS="gatsby" \
 	./$(SCRIPT_DIR)/benchmark.sh
 
@@ -233,6 +266,8 @@ benchmark-astro:
 	USE_DOCKER=$(USE_DOCKER) \
 	PAGE_COUNTS="$(PAGE_COUNTS)" \
 	ITERATIONS=$(ITERATIONS) \
+	SCENARIOS="$(SCENARIOS)" \
+	WARMUP=$(WARMUP) \
 	SSGS="astro" \
 	./$(SCRIPT_DIR)/benchmark.sh
 
@@ -241,6 +276,8 @@ benchmark-docusaurus:
 	USE_DOCKER=$(USE_DOCKER) \
 	PAGE_COUNTS="$(PAGE_COUNTS)" \
 	ITERATIONS=$(ITERATIONS) \
+	SCENARIOS="$(SCENARIOS)" \
+	WARMUP=$(WARMUP) \
 	SSGS="docusaurus" \
 	./$(SCRIPT_DIR)/benchmark.sh
 

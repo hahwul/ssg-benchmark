@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}{{ article.title }} | {{ SITENAME }}{% endblock %}
+
+{% block content %}
+<article>
+    <header>
+        <h1>{{ article.title }}</h1>
+        <time datetime="{{ article.date.strftime('%Y-%m-%d') }}">
+            {{ article.date.strftime('%B %d, %Y') }}
+        </time>
+        {% if article.tags %}
+        <div class="tags">
+            {% for tag in article.tags %}
+            <span class="tag">{{ tag }}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </header>
+    <div class="content">
+        {{ article.content }}
+    </div>
+</article>
+{% endblock %}

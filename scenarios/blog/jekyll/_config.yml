@@ -1,0 +1,45 @@
+# Jekyll — blog scenario: tag pages (jekyll-archives) + pagination(10)
+# (jekyll-paginate) + atom feed (jekyll-feed, limit 20).
+
+title: SSG Benchmark Site
+description: Benchmark site for testing SSG performance
+baseurl: ""
+url: "http://example.com"
+
+markdown: kramdown
+permalink: /:title/
+
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - README.md
+  - vendor
+
+incremental: false
+profile: false
+
+plugins:
+  - jekyll-feed
+  - jekyll-paginate
+  - jekyll-archives
+
+paginate: 10
+paginate_path: "/page:num/"
+
+feed:
+  posts_limit: 20
+
+jekyll-archives:
+  enabled:
+    - tags
+  layouts:
+    tag: tag
+  permalinks:
+    tag: '/tags/:name/'
+
+defaults:
+  - scope:
+      path: ""
+      type: "posts"
+    values:
+      layout: "post"

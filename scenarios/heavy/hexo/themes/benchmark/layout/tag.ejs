@@ -1,0 +1,11 @@
+<section class="tag-page">
+    <h1>Tag: <%= page.tag %></h1>
+    <ul class="posts-list">
+    <% page.posts.each(function(post) { %>
+        <li><a href="<%- url_for(post.path) %>"><%= post.title %></a></li>
+    <% }); %>
+    </ul>
+    <nav class="pagination">
+        <%- paginator({prev_text: 'Previous', next_text: 'Next'}) %>
+    </nav>
+</section>

@@ -1,0 +1,41 @@
+# Hugo — heavy scenario: blog features + build-time syntax highlighting
+# (Chroma) on fenced code blocks.
+
+baseURL = "http://example.com/"
+languageCode = "en-us"
+title = "SSG Benchmark Site"
+
+buildDrafts = false
+buildFuture = false
+buildExpired = false
+enableGitInfo = false
+enableRobotsTXT = false
+
+disableKinds = ["sitemap"]
+paginate = 10
+
+[taxonomies]
+  tag = "tags"
+
+[params]
+  description = "Benchmark site for testing SSG performance"
+
+[markup]
+  [markup.goldmark]
+    [markup.goldmark.renderer]
+      unsafe = true
+  [markup.highlight]
+    codeFences = true
+    noClasses = true
+    style = "github"
+
+[outputs]
+  home = ["HTML", "RSS"]
+  section = ["HTML"]
+  page = ["HTML"]
+  taxonomy = ["HTML"]
+  term = ["HTML"]
+
+[services]
+  [services.rss]
+    limit = 20

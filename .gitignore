@@ -69,3 +69,7 @@ yarn.lock
 .Spotlight-V100
 .Trashes
 ehthumbs.db
+.corpus/
+!sites/hwaro/content/posts/_index.md
+!sites/hwaro/content/_index.md
+web/public/

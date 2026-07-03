@@ -9,8 +9,8 @@ RUN apt-get update && apt-get install -y \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Jekyll and Bundler
-RUN gem install jekyll bundler
+# Install Jekyll and Bundler (+ plugins used by the blog/heavy scenarios)
+RUN gem install jekyll bundler webrick jekyll-feed jekyll-paginate jekyll-archives
 
 # Set working directory
 WORKDIR /site

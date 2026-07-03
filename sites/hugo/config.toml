@@ -9,6 +9,10 @@ buildDrafts = false
 buildFuture = false
 buildExpired = false
 
+# Minimal-scenario parity: no taxonomy/term pages, no sitemap.
+# Scenario overlays (scenarios/blog, scenarios/heavy) replace this config.
+disableKinds = ["taxonomy", "term", "sitemap"]
+
 # Performance settings
 enableGitInfo = false
 enableRobotsTXT = false

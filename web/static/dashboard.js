@@ -12,6 +12,20 @@ const SSG_META = {
   docusaurus: { color: '#2E8555', lang: 'Node.js', desc: 'Build optimized websites quickly with React' }
 };
 
+const SCENARIO_LABELS = {
+  minimal: 'Minimal',
+  blog: 'Blog',
+  heavy: 'Heavy',
+  legacy: 'Legacy (v1)'
+};
+
+const SCENARIO_NOTES = {
+  minimal: 'Pure markdown → HTML pipeline. No taxonomies, pagination, feeds or highlighting.',
+  blog: 'Realistic blog workload: tag pages, pagination (10/page), feed. Output parity checked.',
+  heavy: 'Blog workload plus fenced code blocks with build-time syntax highlighting.',
+  legacy: 'Old methodology (v1): timing includes Docker container overhead and workloads were NOT parity-aligned across SSGs. Not comparable with v2 scenarios.'
+};
+
 const THEME = {
   text: '#edefe6',
   muted: '#969c8f',
@@ -23,8 +37,14 @@ const THEME = {
 };
 
 let DATA = null;
-let trendChart = null;
+let selectedScenario = null;
 let selectedPageCount = null;
+let trendChart = null;
+let scalingChart = null;
+let barCharts = [];
+let tableBound = false;
+let tableSortCol = 'run';
+let tableSortAsc = false;
 
 function applyChartTheme() {
   if (!window.Chart) return;
@@ -60,27 +80,53 @@ async function init() {
   const el = document.getElementById('updated');
   if (el) el.textContent = 'Last updated ' + new Date(DATA.generated).toLocaleString();
 
-  renderLeaderboard();
-  renderScalingChart();
-  renderBarCharts();
-  renderTrendControls();
-  renderTrendChart();
-  renderTable();
+  const scenarios = getScenarios();
+  selectedScenario = scenarios.indexOf('minimal') >= 0 ? 'minimal' : scenarios[0];
+
+  renderScenarioControls();
+  renderAll();
+}
+
+function scenarioOf(r) {
+  return r.scenario || 'legacy';
+}
+
+function getScenarios() {
+  const order = ['minimal', 'blog', 'heavy', 'legacy'];
+  const found = new Set();
+  DATA.runs.forEach(function(run) { run.results.forEach(function(r) { found.add(scenarioOf(r)); }); });
+  return order.filter(function(s) { return found.has(s); });
+}
+
+// Runs that contain at least one result for the selected scenario,
+// with results filtered down to that scenario.
+function scenarioRuns() {
+  return DATA.runs
+    .map(function(run) {
+      return {
+        id: run.id,
+        date: run.date,
+        methodology: run.methodology || 1,
+        results: run.results.filter(function(r) { return scenarioOf(r) === selectedScenario; })
+      };
+    })
+    .filter(function(run) { return run.results.length > 0; });
 }
 
 function latestRun() {
-  return DATA.runs[DATA.runs.length - 1];
+  const runs = scenarioRuns();
+  return runs[runs.length - 1];
 }
 
 function getSSGs() {
   const ssgs = new Set();
-  DATA.runs.forEach(function(r) { r.results.forEach(function(d) { ssgs.add(d.ssg); }); });
+  scenarioRuns().forEach(function(r) { r.results.forEach(function(d) { ssgs.add(d.ssg); }); });
   return Array.from(ssgs).sort();
 }
 
 function getPageCounts() {
   const pcs = new Set();
-  DATA.runs.forEach(function(r) { r.results.forEach(function(d) { pcs.add(d.page_count); }); });
+  scenarioRuns().forEach(function(r) { r.results.forEach(function(d) { pcs.add(d.page_count); }); });
   return Array.from(pcs).sort(function(a, b) { return a - b; });
 }
 
@@ -93,10 +139,49 @@ function displayName(ssg) {
   return ssg.charAt(0).toUpperCase() + ssg.slice(1);
 }
 
+function renderScenarioControls() {
+  const container = document.getElementById('scenarioControls');
+  if (!container) return;
+  container.innerHTML = '';
+
+  getScenarios().forEach(function(sc) {
+    const btn = document.createElement('button');
+    btn.textContent = SCENARIO_LABELS[sc] || sc;
+    btn.className = sc === selectedScenario ? 'active' : '';
+    btn.addEventListener('click', function() {
+      if (selectedScenario === sc) return;
+      selectedScenario = sc;
+      container.querySelectorAll('button').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      renderAll();
+    });
+    container.appendChild(btn);
+  });
+}
+
+function renderAll() {
+  const note = document.getElementById('scenarioNote');
+  if (note) note.textContent = SCENARIO_NOTES[selectedScenario] || '';
+
+  if (scalingChart) { scalingChart.destroy(); scalingChart = null; }
+  if (trendChart) { trendChart.destroy(); trendChart = null; }
+  barCharts.forEach(function(c) { c.destroy(); });
+  barCharts = [];
+
+  renderLeaderboard();
+  renderScalingChart();
+  renderBarCharts();
+  renderTrendControls();
+  renderTrendChart();
+  renderTable();
+}
+
 function renderLeaderboard() {
   var container = document.getElementById('leaderboard-list');
   if (!container) return;
+  container.innerHTML = '';
   var run = latestRun();
+  if (!run) return;
 
   var rows = [];
   getSSGs().forEach(function(ssg) {
@@ -117,7 +202,7 @@ function renderLeaderboard() {
   var slowest = Math.max.apply(null, ordered.map(function(r) { return r.entry.avg_time_ms; }));
 
   var note = document.getElementById('leaderboard-note');
-  if (note) note.textContent = 'avg build time @ ' + refPc.toLocaleString() + ' pages';
+  if (note) note.textContent = (SCENARIO_LABELS[selectedScenario] || selectedScenario) + ' · median build time @ ' + refPc.toLocaleString() + ' pages';
 
   container.innerHTML = ordered.map(function(row, i) {
     var meta = SSG_META[row.ssg] || { color: '#888', lang: '?', desc: '' };
@@ -188,6 +273,7 @@ function renderScalingChart() {
   var canvas = document.getElementById('scalingChart');
   if (!canvas) return;
   var run = latestRun();
+  if (!run) return;
   var ssgs = getSSGs();
   var pageCounts = getPageCounts();
 
@@ -199,7 +285,7 @@ function renderScalingChart() {
     return lineDataset(ssg, data);
   });
 
-  new Chart(canvas, {
+  scalingChart = new Chart(canvas, {
     type: 'line',
     data: { labels: pageCounts.map(function(pc) { return pc.toLocaleString() + ' pages'; }), datasets: datasets },
     options: chartOptions()
@@ -209,7 +295,9 @@ function renderScalingChart() {
 function renderBarCharts() {
   var container = document.getElementById('barCharts');
   if (!container) return;
+  container.innerHTML = '';
   var run = latestRun();
+  if (!run) return;
   var ssgs = getSSGs();
   var pageCounts = getPageCounts();
 
@@ -225,7 +313,7 @@ function renderBarCharts() {
     });
     var colors = ssgs.map(function(s) { return (SSG_META[s] || { color: '#888' }).color; });
 
-    new Chart(canvas, {
+    barCharts.push(new Chart(canvas, {
       type: 'bar',
       data: {
         labels: ssgs.map(displayName),
@@ -258,7 +346,7 @@ function renderBarCharts() {
           }
         }
       }
-    });
+    }));
   });
 }
 
@@ -266,6 +354,7 @@ function renderTrendControls() {
   var pageCounts = getPageCounts();
   var container = document.getElementById('trendControls');
   if (!container) return;
+  container.innerHTML = '';
   selectedPageCount = pageCounts[pageCounts.length - 1];
 
   pageCounts.forEach(function(pc) {
@@ -285,8 +374,10 @@ function renderTrendControls() {
 function renderTrendChart() {
   var canvas = document.getElementById('trendChart');
   if (!canvas) return;
+  if (trendChart) { trendChart.destroy(); trendChart = null; }
   var ssgs = getSSGs();
-  var runs = DATA.runs;
+  var runs = scenarioRuns();
+  if (!runs.length) return;
 
   var labels = runs.map(function(r) { return r.date; });
   var datasets = ssgs.map(function(ssg) {
@@ -297,7 +388,6 @@ function renderTrendChart() {
     return lineDataset(ssg, data);
   });
 
-  if (trendChart) trendChart.destroy();
   trendChart = new Chart(canvas, {
     type: 'line',
     data: { labels: labels, datasets: datasets },
@@ -310,20 +400,21 @@ function renderTable() {
   if (!tbody) return;
   var rows = [];
 
-  DATA.runs.forEach(function(run) {
+  scenarioRuns().forEach(function(run) {
     run.results.forEach(function(r) {
-      rows.push({ run: run.date, runId: run.id, ssg: r.ssg, page_count: r.page_count, avg_time_ms: r.avg_time_ms, min_time_ms: r.min_time_ms, max_time_ms: r.max_time_ms });
+      rows.push({
+        run: run.date, runId: run.id, ssg: r.ssg, scenario: scenarioOf(r),
+        page_count: r.page_count, avg_time_ms: r.avg_time_ms,
+        min_time_ms: r.min_time_ms, max_time_ms: r.max_time_ms
+      });
     });
   });
 
-  var sortCol = 'run';
-  var sortAsc = false;
-
   function render() {
     rows.sort(function(a, b) {
-      var va = a[sortCol], vb = b[sortCol];
-      if (typeof va === 'string') return sortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
-      return sortAsc ? va - vb : vb - va;
+      var va = a[tableSortCol], vb = b[tableSortCol];
+      if (typeof va === 'string') return tableSortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+      return tableSortAsc ? va - vb : vb - va;
     });
 
     tbody.innerHTML = rows.map(function(r) {
@@ -331,6 +422,7 @@ function renderTable() {
       return '<tr>' +
         '<td class="mono">' + r.run + '</td>' +
         '<td><span class="ssg-badge" style="background:' + meta.color + '"></span><span class="ssg-name">' + r.ssg + '</span></td>' +
+        '<td class="mono">' + r.scenario + '</td>' +
         '<td class="num mono">' + r.page_count.toLocaleString() + '</td>' +
         '<td class="num">' + r.avg_time_ms.toLocaleString() + '</td>' +
         '<td class="num dim">' + r.min_time_ms.toLocaleString() + '</td>' +
@@ -341,22 +433,25 @@ function renderTable() {
     document.querySelectorAll('#resultsTable th').forEach(function(th) {
       var existing = th.querySelector('.sort-icon');
       if (existing) existing.remove();
-      if (th.dataset.col === sortCol) {
+      if (th.dataset.col === tableSortCol) {
         var span = document.createElement('span');
         span.className = 'sort-icon';
-        span.textContent = sortAsc ? ' ↑' : ' ↓';
+        span.textContent = tableSortAsc ? ' ↑' : ' ↓';
         th.appendChild(span);
       }
     });
   }
 
-  document.querySelectorAll('#resultsTable th').forEach(function(th) {
-    th.addEventListener('click', function() {
-      if (sortCol === th.dataset.col) { sortAsc = !sortAsc; }
-      else { sortCol = th.dataset.col; sortAsc = true; }
-      render();
+  if (!tableBound) {
+    tableBound = true;
+    document.querySelectorAll('#resultsTable th').forEach(function(th) {
+      th.addEventListener('click', function() {
+        if (tableSortCol === th.dataset.col) { tableSortAsc = !tableSortAsc; }
+        else { tableSortCol = th.dataset.col; tableSortAsc = true; }
+        renderTable();
+      });
     });
-  });
+  }
 
   render();
 }

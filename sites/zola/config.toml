@@ -25,10 +25,9 @@ minify_html = false
 # Whether to generate feeds
 generate_feeds = false
 
-# Taxonomies
-taxonomies = [
-    { name = "tags", feed = false },
-]
+# Minimal-scenario parity: no taxonomies (blog/heavy overlays enable tags).
+# Note: Zola always emits sitemap.xml (not configurable) — documented deviation.
+taxonomies = []
 
 [extra]
 # Custom variables can go here

@@ -1,0 +1,20 @@
+# Zola — blog scenario: tag pages + pagination(10) + atom feed (limit 20).
+
+base_url = "http://example.com"
+title = "SSG Benchmark Site"
+description = "Benchmark site for testing SSG performance"
+default_language = "en"
+
+compile_sass = false
+build_search_index = false
+minify_html = false
+
+generate_feeds = true
+feed_limit = 20
+
+taxonomies = [
+    { name = "tags" },
+]
+
+[extra]
+author = "Benchmark"

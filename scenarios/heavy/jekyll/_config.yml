@@ -1,0 +1,48 @@
+# Jekyll — heavy scenario: blog features + build-time syntax highlighting
+# (Rouge) on fenced code blocks.
+
+title: SSG Benchmark Site
+description: Benchmark site for testing SSG performance
+baseurl: ""
+url: "http://example.com"
+
+markdown: kramdown
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
+permalink: /:title/
+
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - README.md
+  - vendor
+
+incremental: false
+profile: false
+
+plugins:
+  - jekyll-feed
+  - jekyll-paginate
+  - jekyll-archives
+
+paginate: 10
+paginate_path: "/page:num/"
+
+feed:
+  posts_limit: 20
+
+jekyll-archives:
+  enabled:
+    - tags
+  layouts:
+    tag: tag
+  permalinks:
+    tag: '/tags/:name/'
+
+defaults:
+  - scope:
+      path: ""
+      type: "posts"
+    values:
+      layout: "post"

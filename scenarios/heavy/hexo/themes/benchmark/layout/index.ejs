@@ -1,0 +1,19 @@
+<section class="home">
+    <h1><%= config.title %></h1>
+    <p><%= config.description %></p>
+
+    <ul class="posts-list">
+    <% page.posts.each(function(post) { %>
+        <li>
+            <a href="<%- url_for(post.path) %>"><%= post.title %></a>
+            <time datetime="<%= date(post.date, 'YYYY-MM-DD') %>">
+                <%= date(post.date, 'MMMM DD, YYYY') %>
+            </time>
+        </li>
+    <% }); %>
+    </ul>
+
+    <nav class="pagination">
+        <%- paginator({prev_text: 'Previous', next_text: 'Next'}) %>
+    </nav>
+</section>

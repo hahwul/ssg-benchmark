@@ -12,5 +12,5 @@ RUN apk add --no-cache \
 # Set working directory
 WORKDIR /site
 
-# Default command
-CMD ["hugo", "--minify"]
+# Default command (no --minify: minification is not part of the benchmark workload)
+CMD ["hugo"]

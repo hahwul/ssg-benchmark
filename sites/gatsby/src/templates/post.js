@@ -23,13 +23,6 @@ const PostTemplate = ({ data }) => {
             <time dateTime={post.frontmatter.date}>
               {post.frontmatter.date}
             </time>
-            {post.frontmatter.tags && (
-              <div className="tags">
-                {post.frontmatter.tags.map((tag) => (
-                  <span key={tag} className="tag">{tag}</span>
-                ))}
-              </div>
-            )}
             <div dangerouslySetInnerHTML={{ __html: post.html }} />
           </article>
         </main>
@@ -50,7 +43,6 @@ export const query = graphql`
       frontmatter {
         title
         date
-        tags
       }
     }
   }

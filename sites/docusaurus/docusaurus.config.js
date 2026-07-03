@@ -25,7 +25,12 @@ const config = {
           routeBasePath: '/posts',
           showReadingTime: false,
           blogSidebarCount: 0,
+          postsPerPage: 10,
+          onUntruncatedBlogPosts: 'ignore',
         },
+        // Minimal-scenario parity: no sitemap (framework list pagination is a
+        // documented deviation — Docusaurus cannot render a single small index).
+        sitemap: false,
       }),
     ],
   ],

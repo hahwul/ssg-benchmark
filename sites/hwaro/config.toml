@@ -35,13 +35,8 @@ enabled = false
 enabled = false
 
 # =============================================================================
-# Taxonomies
+# Taxonomies: none in the minimal scenario (blog/heavy overlays enable tags)
 # =============================================================================
-
-[[taxonomies]]
-name = "tags"
-feed = false
-sitemap = false
 
 # =============================================================================
 # SEO: Sitemap (disabled for benchmark)

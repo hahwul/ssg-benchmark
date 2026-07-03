@@ -9,8 +9,10 @@ RUN apt-get update && apt-get install -y \
     coreutils \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Eleventy globally
-RUN npm install -g @11ty/eleventy
+# Install Eleventy globally (+ syntax highlighting plugin for the heavy
+# scenario; NODE_PATH lets site configs require() globally installed modules)
+RUN npm install -g @11ty/eleventy @11ty/eleventy-plugin-syntaxhighlight
+ENV NODE_PATH=/usr/local/lib/node_modules
 
 # Set working directory
 WORKDIR /site

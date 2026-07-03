@@ -1,0 +1,13 @@
+{{ define "main" }}
+<section class="tag-page">
+    <h1>{{ .Title }}</h1>
+    <ul class="posts-list">
+    {{ range .Pages }}
+        <li>
+            <a href="{{ .Permalink }}">{{ .Title }}</a>
+            <time datetime="{{ .Date.Format "2006-01-02" }}">{{ .Date.Format "January 2, 2006" }}</time>
+        </li>
+    {{ end }}
+    </ul>
+</section>
+{{ end }}
