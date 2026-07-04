@@ -46,7 +46,7 @@ DOCKER_DIR="${PROJECT_DIR}/docker"
 DEFAULT_PAGE_COUNTS="1000"
 DEFAULT_ITERATIONS=3
 DEFAULT_SSGS="hugo zola jekyll blades hwaro eleventy pelican hexo gatsby astro docusaurus"
-DEFAULT_SCENARIOS="minimal"
+DEFAULT_SCENARIOS="minimal blog heavy"
 
 PAGE_COUNTS="${PAGE_COUNTS:-$DEFAULT_PAGE_COUNTS}"
 ITERATIONS="${ITERATIONS:-$DEFAULT_ITERATIONS}"
@@ -65,7 +65,7 @@ usage() {
     echo "Options:"
     echo "  -s, --ssgs LIST          Comma-separated list of SSGs to benchmark"
     echo "  -p, --pages LIST         Comma-separated list of page counts (default: 1000)"
-    echo "  -n, --scenarios LIST     Comma-separated scenarios: minimal,blog,heavy (default: minimal)"
+    echo "  -n, --scenarios LIST     Comma-separated scenarios: minimal,blog,heavy (default: minimal,blog,heavy)"
     echo "  -i, --iterations N       Recorded iterations per benchmark (default: 3)"
     echo "  -w, --warmup N           Unrecorded warmup builds (default: 1)"
     echo "  -d, --no-docker          Run without Docker (requires local installs)"

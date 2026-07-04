@@ -18,7 +18,7 @@ help:
 	@echo "  clean             Clean generated content and results"
 	@echo ""
 	@echo "Benchmark Targets:"
-	@echo "  benchmark         Run full benchmark suite (all SSGs)"
+	@echo "  benchmark         Run full benchmark suite (all SSGs, all scenarios)"
 	@echo "  quick-test        Quick test with 10 pages, 1 iteration"
 	@echo "  full-test         Full benchmark sweep (10-10000 pages, all scenarios)"
 	@echo ""
@@ -50,7 +50,7 @@ help:
 	@echo "Configuration (environment variables):"
 	@echo "  PAGE_COUNTS       Page counts to test (default: '1000')"
 	@echo "  ITERATIONS        Iterations per test (default: 3)"
-	@echo "  SCENARIOS         Scenarios: minimal blog heavy (default: 'minimal')"
+	@echo "  SCENARIOS         Scenarios: minimal blog heavy (default: 'minimal blog heavy')"
 	@echo "  WARMUP            Warmup builds per combination (default: 1)"
 	@echo "  SSGS              SSGs to benchmark (default: 'hugo zola jekyll hwaro eleventy pelican hexo gatsby astro docusaurus')"
 	@echo "  USE_DOCKER        Use Docker containers (default: true)"
@@ -63,7 +63,7 @@ help:
 # Configuration with defaults
 PAGE_COUNTS ?= 1000
 ITERATIONS ?= 3
-SCENARIOS ?= minimal
+SCENARIOS ?= minimal blog heavy
 WARMUP ?= 1
 # Default SSGs for benchmarking (blades excluded due to build issues)
 SSGS ?= hugo zola jekyll hwaro eleventy pelican hexo gatsby astro docusaurus

@@ -1,7 +1,7 @@
 {
   "methodology": 2,
-  "timestamp": "20260704_122113",
-  "scenarios": "minimal",
+  "timestamp": "20260704_132532",
+  "scenarios": "minimal blog heavy",
   "ssgs": "hugo zola jekyll hwaro eleventy pelican hexo gatsby astro docusaurus",
   "page_counts": "1000",
   "iterations": 3,
