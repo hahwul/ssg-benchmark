@@ -1,6 +1,7 @@
 # =============================================================================
-# Hwaro — heavy scenario: blog features + build-time syntax highlighting
-# (mode = "server", Tartrazine) on fenced code blocks
+# Hwaro — heavy scenario: blog features (tags, pagination, feed, Tartrazine
+# highlighting) + template-heavy layouts: sidebar partial on every page
+# (recent posts + tag cloud), breadcrumbs, prev/next post navigation
 # =============================================================================
 
 title = "SSG Benchmark Site"

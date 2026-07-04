@@ -20,7 +20,7 @@ help:
 	@echo "Benchmark Targets:"
 	@echo "  benchmark         Run full benchmark suite (all SSGs)"
 	@echo "  quick-test        Quick test with 10 pages, 1 iteration"
-	@echo "  full-test         Full benchmark with 10-5000 pages"
+	@echo "  full-test         Full benchmark sweep (10-10000 pages, all scenarios)"
 	@echo ""
 	@echo "Individual SSG Benchmarks:"
 	@echo "  benchmark-hugo      Benchmark Hugo only"
@@ -48,7 +48,7 @@ help:
 	@echo "  install-deps      Check and install dependencies"
 	@echo ""
 	@echo "Configuration (environment variables):"
-	@echo "  PAGE_COUNTS       Page counts to test (default: '10 100 1000 5000')"
+	@echo "  PAGE_COUNTS       Page counts to test (default: '1000')"
 	@echo "  ITERATIONS        Iterations per test (default: 3)"
 	@echo "  SCENARIOS         Scenarios: minimal blog heavy (default: 'minimal')"
 	@echo "  WARMUP            Warmup builds per combination (default: 1)"
@@ -61,7 +61,7 @@ help:
 	@echo "  PAGE_COUNTS='100 500' ITERATIONS=5 make benchmark-hugo"
 
 # Configuration with defaults
-PAGE_COUNTS ?= 10 100 1000 5000
+PAGE_COUNTS ?= 1000
 ITERATIONS ?= 3
 SCENARIOS ?= minimal
 WARMUP ?= 1

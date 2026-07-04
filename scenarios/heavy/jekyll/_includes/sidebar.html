@@ -1,0 +1,18 @@
+<aside class="sidebar">
+    <section class="widget recent-posts">
+        <h2>Recent Posts</h2>
+        <ul>
+        {% for post in site.posts limit:10 %}
+            <li><a href="{{ post.url }}">{{ post.title }}</a></li>
+        {% endfor %}
+        </ul>
+    </section>
+    <section class="widget tag-cloud">
+        <h2>Tags</h2>
+        <ul>
+        {% for tag in site.tags %}
+            <li><a href="/tags/{{ tag[0] | slugify }}/">{{ tag[0] }} ({{ tag[1] | size }})</a></li>
+        {% endfor %}
+        </ul>
+    </section>
+</aside>

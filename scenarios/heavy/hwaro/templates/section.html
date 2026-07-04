@@ -1,10 +1,9 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>{{ section.title }} | {{ site.title }}</title>
-</head>
-<body>
+{% extends "base.html" %}
+
+{% block title %}{{ section.title }} | {{ site.title }}{% endblock %}
+
+{% block content %}
+<section class="section">
     <h1>{{ section.title }}</h1>
     <ul class="posts-list">
     {% if paginator %}
@@ -24,5 +23,5 @@
         {% if paginator.next %}<a href="{{ paginator.next }}">Next</a>{% endif %}
     </nav>
     {% endif %}
-</body>
-</html>
+</section>
+{% endblock %}

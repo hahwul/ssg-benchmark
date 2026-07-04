@@ -1,5 +1,6 @@
-# Jekyll — blog scenario: tag pages (jekyll-archives) + pagination(10)
-# (jekyll-paginate) + atom feed (jekyll-feed, limit 20).
+# Jekyll — blog scenario: tag pages + pagination(10) + feed (limit 20)
+# + build-time syntax highlighting
+# (Rouge) on fenced code blocks.
 
 title: SSG Benchmark Site
 description: Benchmark site for testing SSG performance
@@ -7,6 +8,9 @@ baseurl: ""
 url: "http://example.com"
 
 markdown: kramdown
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
 permalink: /:title/
 
 exclude:

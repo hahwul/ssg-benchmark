@@ -1,5 +1,6 @@
-# Hexo — heavy scenario: blog features + build-time syntax highlighting
-# (highlight.js, server-side) on fenced code blocks.
+# Hexo — heavy scenario: blog features (tags, pagination, feed, highlight.js
+# highlighting) + template-heavy layouts: sidebar partial on every page
+# (recent posts + tag cloud), breadcrumbs, prev/next post navigation.
 
 title: SSG Benchmark Site
 subtitle: Benchmark site for testing SSG performance

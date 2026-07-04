@@ -1,4 +1,6 @@
-# Hexo — blog scenario: tag pages + pagination(10) + atom feed (limit 20).
+# Hexo — blog scenario: tag pages + pagination(10) + feed (limit 20)
+# + build-time syntax highlighting
+# (highlight.js, server-side) on fenced code blocks.
 
 title: SSG Benchmark Site
 subtitle: Benchmark site for testing SSG performance
@@ -47,6 +49,9 @@ feed:
 
 sitemap:
   enable: false
+
+# Build-time syntax highlighting
+syntax_highlighter: highlight.js
 
 # Theme
 theme: benchmark

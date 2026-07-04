@@ -21,8 +21,8 @@ const SCENARIO_LABELS = {
 
 const SCENARIO_NOTES = {
   minimal: 'Pure markdown → HTML pipeline. No taxonomies, pagination, feeds or highlighting.',
-  blog: 'Realistic blog workload: tag pages, pagination (10/page), feed. Output parity checked.',
-  heavy: 'Blog workload plus fenced code blocks with build-time syntax highlighting.',
+  blog: 'Realistic blog workload: tag pages, pagination (10/page), feed, build-time syntax highlighting. Output parity checked.',
+  heavy: 'Blog workload plus template-heavy layouts: a sidebar (recent posts + tag cloud) on every page, breadcrumbs and prev/next navigation.',
   legacy: 'Old methodology (v1): timing includes Docker container overhead and workloads were NOT parity-aligned across SSGs. Not comparable with v2 scenarios.'
 };
 
@@ -37,8 +37,8 @@ const SCENARIO_ACCENTS = {
 
 const SCENARIO_TAGLINES = {
   minimal: 'markdown → HTML',
-  blog: 'tags · pagination · feed',
-  heavy: '+ syntax highlighting',
+  blog: 'tags · pagination · feed · highlighting',
+  heavy: '+ sidebar · heavy templates',
   legacy: 'old methodology'
 };
 

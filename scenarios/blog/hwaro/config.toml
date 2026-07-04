@@ -1,5 +1,6 @@
 # =============================================================================
-# Hwaro — blog scenario: tag pages + pagination(10) + atom feed (limit 20)
+# Hwaro — blog scenario: tag pages + pagination(10) + feed (limit 20)
+# + build-time syntax highlighting (mode = "server", Tartrazine)
 # =============================================================================
 
 title = "SSG Benchmark Site"
@@ -10,7 +11,10 @@ base_url = "http://example.com"
 processors = ["markdown"]
 
 [highlight]
-enabled = false
+enabled = true
+mode = "server"
+theme = "github"
+use_cdn = false
 
 [search]
 enabled = false

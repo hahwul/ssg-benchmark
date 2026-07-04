@@ -21,8 +21,8 @@ Three workload scenarios isolate different subsystems (see [METHODOLOGY.md](METH
 | Scenario | Workload |
 |----------|----------|
 | `minimal` | Pure markdown → HTML pipeline, all extras off |
-| `blog` | Realistic blog: tag pages, pagination (10/page), feed |
-| `heavy` | Blog + fenced code blocks with build-time syntax highlighting |
+| `blog` | Realistic blog: tag pages, pagination (10/page), feed, build-time syntax highlighting |
+| `heavy` | Blog + template-heavy layouts: sidebar on every page (recent posts + tag cloud), breadcrumbs, prev/next navigation |
 
 All SSGs build **byte-identical markdown bodies** generated from a fixed seed,
 so results are reproducible and directly comparable within a scenario.
@@ -156,7 +156,7 @@ docker-compose --profile benchmark up benchmark-runner
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `PAGE_COUNTS` | `10 100 1000 5000` | Space-separated list of page counts to test |
+| `PAGE_COUNTS` | `1000` | Space-separated list of page counts to test |
 | `ITERATIONS` | `3` | Recorded iterations per benchmark (median reported) |
 | `WARMUP` | `1` | Unrecorded warmup builds per combination |
 | `SCENARIOS` | `minimal` | Scenarios to run: `minimal`, `blog`, `heavy` |
@@ -199,8 +199,8 @@ ssg-benchmark/
 ├── sites/                     # Base site templates (minimal scenario)
 │   ├── hugo/ zola/ jekyll/ hwaro/ ...
 ├── scenarios/                 # Scenario overlays (copied over the base)
-│   ├── blog/<ssg>/            # tags + pagination + feed configs/templates
-│   └── heavy/<ssg>/           # blog + build-time syntax highlighting
+│   ├── blog/<ssg>/            # tags + pagination + feed + syntax highlighting
+│   └── heavy/<ssg>/           # blog + sidebar/breadcrumbs/prev-next templates
 ├── .corpus/                   # Cached deterministic markdown bodies (gitignored)
 ├── results/                   # Benchmark results (timestamped)
 │   └── YYYYMMDD_HHMMSS/

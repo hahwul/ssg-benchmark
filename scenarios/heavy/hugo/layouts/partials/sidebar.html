@@ -1,0 +1,18 @@
+<aside class="sidebar">
+    <section class="widget recent-posts">
+        <h2>Recent Posts</h2>
+        <ul>
+        {{ range first 10 (where .Site.RegularPages "Section" "posts") }}
+            <li><a href="{{ .Permalink }}">{{ .Title }}</a></li>
+        {{ end }}
+        </ul>
+    </section>
+    <section class="widget tag-cloud">
+        <h2>Tags</h2>
+        <ul>
+        {{ range $name, $pages := .Site.Taxonomies.tags }}
+            <li><a href="/tags/{{ $name | urlize }}/">{{ $name }} ({{ len $pages }})</a></li>
+        {{ end }}
+        </ul>
+    </section>
+</aside>

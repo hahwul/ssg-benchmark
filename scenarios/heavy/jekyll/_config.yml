@@ -1,5 +1,6 @@
-# Jekyll — heavy scenario: blog features + build-time syntax highlighting
-# (Rouge) on fenced code blocks.
+# Jekyll — heavy scenario: blog features (tags, pagination, feed, Rouge
+# highlighting) + template-heavy layouts: sidebar include on every page
+# (recent posts + tag cloud), breadcrumbs, prev/next post navigation.
 
 title: SSG Benchmark Site
 description: Benchmark site for testing SSG performance

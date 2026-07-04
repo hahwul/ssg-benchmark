@@ -1,0 +1,18 @@
+<aside class="sidebar">
+    <section class="widget recent-posts">
+        <h2>Recent Posts</h2>
+        <ul>
+        {% for article in articles[:10] %}
+            <li><a href="{{ SITEURL }}/{{ article.url }}">{{ article.title }}</a></li>
+        {% endfor %}
+        </ul>
+    </section>
+    <section class="widget tag-cloud">
+        <h2>Tags</h2>
+        <ul>
+        {% for tag, tag_articles in tags | sort %}
+            <li><a href="{{ SITEURL }}/{{ tag.url }}">{{ tag }} ({{ tag_articles | length }})</a></li>
+        {% endfor %}
+        </ul>
+    </section>
+</aside>

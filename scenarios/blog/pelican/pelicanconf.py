@@ -1,5 +1,6 @@
-# Pelican — blog scenario: tag pages (simple theme) + pagination(10)
-# + atom feed (limit 20).
+# Pelican — blog scenario: tag pages + pagination(10) + feed (limit 20)
+# + build-time syntax highlighting
+# (Pygments via codehilite) on fenced code blocks.
 
 AUTHOR = 'SSG Benchmark'
 SITENAME = 'SSG Benchmark Site'
@@ -23,6 +24,16 @@ AUTHOR_FEED_ATOM = None
 AUTHOR_FEED_RSS = None
 
 RELATIVE_URLS = False
+
+MARKDOWN = {
+    'extension_configs': {
+        'markdown.extensions.codehilite': {'css_class': 'highlight'},
+        'markdown.extensions.extra': {},
+        'markdown.extensions.meta': {},
+    },
+    'output_format': 'html5',
+}
+
 
 # Parity: only index + per-tag pages; no author/category archives.
 DIRECT_TEMPLATES = ['index']

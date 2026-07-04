@@ -1,5 +1,6 @@
-# Hugo — heavy scenario: blog features + build-time syntax highlighting
-# (Chroma) on fenced code blocks.
+# Hugo — heavy scenario: blog features (tags, pagination, feed, Chroma
+# highlighting) + template-heavy layouts: sidebar partial on every page
+# (recent posts + tag cloud), breadcrumbs, prev/next post navigation.
 
 baseURL = "http://example.com/"
 languageCode = "en-us"

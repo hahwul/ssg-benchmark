@@ -1,9 +1,9 @@
 {
   "methodology": 2,
-  "timestamp": "20260704_015809",
-  "scenarios": "minimal blog heavy",
-  "ssgs": "hugo zola hwaro jekyll eleventy pelican hexo",
-  "page_counts": "10 100 1000",
+  "timestamp": "20260704_122113",
+  "scenarios": "minimal",
+  "ssgs": "hugo zola jekyll hwaro eleventy pelican hexo gatsby astro docusaurus",
+  "page_counts": "1000",
   "iterations": 3,
   "warmup": 1,
   "seed": 42,

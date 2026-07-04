@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ site.title }}{% endblock %}</title>
+    <meta name="description" content="{{ site.description }}">
+</head>
+<body>
+    <header>
+        <h1>{{ site.title }}</h1>
+        <nav class="breadcrumbs">
+            <a href="/">Home</a>{% if page and page.title %} / <span>{{ page.title }}</span>{% elif section and section.title %} / <span>{{ section.title }}</span>{% endif %}
+        </nav>
+    </header>
+    <div class="layout">
+        <main>
+            {% block content %}{% endblock %}
+        </main>
+        {% include "partials/sidebar.html" %}
+    </div>
+    <footer>
+        <p>&copy; SSG Benchmark</p>
+    </footer>
+</body>
+</html>

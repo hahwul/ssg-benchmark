@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ SITENAME }}{% endblock %}</title>
+</head>
+<body>
+    <header>
+        <h1>{{ SITENAME }}</h1>
+        <nav class="breadcrumbs">
+            <a href="{{ SITEURL }}/">Home</a>{% if article %} / <span>{{ article.title }}</span>{% elif tag %} / <span>Tag: {{ tag }}</span>{% endif %}
+        </nav>
+    </header>
+    <div class="layout">
+        <main>
+            {% block content %}{% endblock %}
+        </main>
+        {% include "sidebar.html" %}
+    </div>
+    <footer>
+        <p>&copy; SSG Benchmark</p>
+    </footer>
+</body>
+</html>

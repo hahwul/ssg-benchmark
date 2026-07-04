@@ -9,8 +9,10 @@
 #
 # Scenarios:
 #   minimal  - plain markdown body, no tags (no taxonomy work anywhere)
-#   blog     - body + 2 tags per post from a fixed pool of 10
-#   heavy    - blog + fenced code blocks in the body (syntax highlighting load)
+#   blog     - body + 2 tags per post from a fixed pool of 10 + fenced code
+#              blocks (build-time syntax highlighting load)
+#   heavy    - same content as blog; the overlay adds template-heavy layouts
+#              (sidebar on every page, breadcrumbs, prev/next navigation)
 #
 # Compatible with macOS bash 3.2 (no associative arrays, no mapfile).
 
@@ -185,7 +187,7 @@ page_tags() {
 
 corpus_class() {
     case $SCENARIO in
-        heavy) echo "code" ;;
+        blog|heavy) echo "code" ;;
         *) echo "plain" ;;
     esac
 }

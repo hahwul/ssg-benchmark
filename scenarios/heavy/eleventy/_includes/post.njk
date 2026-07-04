@@ -1,0 +1,29 @@
+---
+layout: default.njk
+---
+<article>
+    <header>
+        <h1>{{ title }}</h1>
+        {% if date %}
+        <time datetime="{{ date | dateFormat('iso') }}">
+            {{ date | dateFormat }}
+        </time>
+        {% endif %}
+        {% if tags %}
+        <div class="tags">
+            {% for tag in tags %}
+            <span class="tag">{{ tag }}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </header>
+    <div class="content">
+        {{ content | safe }}
+    </div>
+    {%- set previousPost = collections.post | getPreviousCollectionItem(page) %}
+    {%- set nextPost = collections.post | getNextCollectionItem(page) %}
+    <nav class="post-nav">
+        {% if previousPost %}<a class="post-nav-prev" href="{{ previousPost.url }}">&larr; {{ previousPost.data.title }}</a>{% endif %}
+        {% if nextPost %}<a class="post-nav-next" href="{{ nextPost.url }}">{{ nextPost.data.title }} &rarr;</a>{% endif %}
+    </nav>
+</article>

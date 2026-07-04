@@ -1,0 +1,18 @@
+<aside class="sidebar">
+    <section class="widget recent-posts">
+        <h2>Recent Posts</h2>
+        <ul>
+        <% site.posts.sort('date', -1).limit(10).each(function(post) { %>
+            <li><a href="<%- url_for(post.path) %>"><%= post.title %></a></li>
+        <% }); %>
+        </ul>
+    </section>
+    <section class="widget tag-cloud">
+        <h2>Tags</h2>
+        <ul>
+        <% site.tags.sort('name').each(function(tag) { %>
+            <li><a href="<%- url_for(tag.path) %>"><%= tag.name %> (<%= tag.posts.length %>)</a></li>
+        <% }); %>
+        </ul>
+    </section>
+</aside>

@@ -1,0 +1,20 @@
+<aside class="sidebar">
+    <section class="widget recent-posts">
+        <h2>Recent Posts</h2>
+        {% set posts_section = get_section(path="posts/_index.md") %}
+        <ul>
+        {% for post in posts_section.pages | slice(end=10) %}
+            <li><a href="{{ post.permalink }}">{{ post.title }}</a></li>
+        {% endfor %}
+        </ul>
+    </section>
+    <section class="widget tag-cloud">
+        <h2>Tags</h2>
+        {% set tags_taxonomy = get_taxonomy(kind="tags") %}
+        <ul>
+        {% for term in tags_taxonomy.items %}
+            <li><a href="{{ term.permalink }}">{{ term.name }} ({{ term.pages | length }})</a></li>
+        {% endfor %}
+        </ul>
+    </section>
+</aside>

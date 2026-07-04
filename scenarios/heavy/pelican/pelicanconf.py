@@ -1,5 +1,6 @@
-# Pelican — heavy scenario: blog features + build-time syntax highlighting
-# (Pygments via codehilite) on fenced code blocks.
+# Pelican — heavy scenario: blog features (tags, pagination, feed, Pygments
+# highlighting) + template-heavy layouts: sidebar include on every page
+# (recent posts + tag cloud), breadcrumbs, prev/next post navigation.
 
 AUTHOR = 'SSG Benchmark'
 SITENAME = 'SSG Benchmark Site'

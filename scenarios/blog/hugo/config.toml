@@ -1,6 +1,6 @@
-# Hugo — blog scenario: tag pages + pagination(10) + atom-equivalent RSS feed.
-# Sitemap stays off across all scenarios (Zola's forced sitemap is the one
-# documented deviation).
+# Hugo — blog scenario: tag pages + pagination(10) + feed (limit 20)
+# + build-time syntax highlighting
+# (Chroma) on fenced code blocks.
 
 baseURL = "http://example.com/"
 languageCode = "en-us"
@@ -25,6 +25,10 @@ paginate = 10
   [markup.goldmark]
     [markup.goldmark.renderer]
       unsafe = true
+  [markup.highlight]
+    codeFences = true
+    noClasses = true
+    style = "github"
 
 [outputs]
   home = ["HTML", "RSS"]

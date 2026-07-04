@@ -72,18 +72,34 @@ The original methodology had several flaws that could flip rankings:
 | Tag pages + tag index | – | ✓ | ✓ |
 | Pagination (10/page) | – | ✓ | ✓ |
 | Feed (atom/rss, limit 20) | – | ✓ | ✓ |
-| Fenced code blocks (3/post) | – | – | ✓ |
-| Build-time syntax highlighting | – | – | ✓ |
+| Fenced code blocks (3/post) | – | ✓ | ✓ |
+| Build-time syntax highlighting | – | ✓ | ✓ |
+| Sidebar on every page (recent 10 + tag cloud w/ counts) | – | – | ✓ |
+| Breadcrumb nav on every page | – | – | ✓ |
+| Prev/next post navigation | – | – | ✓ |
 | Sitemap | – | – | – |
 
 - **minimal** answers: how fast is the core parse→render→write pipeline?
-- **blog** answers: how fast is a realistic content site (taxonomies,
-  pagination, feeds)?
-- **heavy** additionally stresses the syntax highlighter, a common hotspot.
+- **blog** answers: how fast is a realistic content blog (taxonomies,
+  pagination, feeds, build-time syntax highlighting)?
+- **heavy** answers: how fast is a template-heavy site? Content and features
+  are identical to `blog`, but the layouts do much more work per page: a
+  sidebar partial (site-wide recent posts + a tag cloud with counts) is
+  rendered on **every** page via the SSG's include/partial mechanism, plus
+  breadcrumbs and prev/next post navigation on post pages. This stresses
+  template composition and per-page access to site-wide collections —
+  `heavy` emits the same page set as `blog`, so any time delta between the
+  two is pure template overhead.
 
-Highlighting engines used in `heavy` (all build-time, no client JS):
+Highlighting engines used in `blog`/`heavy` (all build-time, no client JS):
 Hugo=Chroma, Zola=giallo/syntect, Hwaro=Tartrazine (`mode="server"`),
 Jekyll=Rouge, Eleventy=Prism plugin, Pelican=Pygments, Hexo=highlight.js.
+
+Sidebar/nav implementations use each SSG's native idiom (Hugo partial +
+`.Site.Taxonomies`, Zola `include` + `get_taxonomy`, Jekyll include +
+`site.tags`, Hwaro partial + `get_taxonomy`, Eleventy include + a small
+`tagList` collection in `.eleventy.js`, Pelican include + the `tags` common
+context, Hexo `partial()` + `site.tags`). The default page count is 1000.
 
 ### Scenario support matrix
 
