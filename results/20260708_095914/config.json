@@ -1,0 +1,15 @@
+{
+  "methodology": 2,
+  "timestamp": "20260708_095914",
+  "scenarios": "minimal blog heavy",
+  "ssgs": "hugo zola jekyll hwaro eleventy pelican hexo gatsby astro docusaurus",
+  "page_counts": "1000",
+  "iterations": 3,
+  "warmup": 1,
+  "seed": 42,
+  "use_docker": "true",
+  "docker_cpus": "4",
+  "docker_memory": "4g",
+  "host": "Darwin arm64",
+  "docker_version": "Docker version 29.6.1, build 8900f1d"
+}
