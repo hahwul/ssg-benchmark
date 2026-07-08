@@ -1,0 +1,67 @@
+{
+  "generated": "2026-07-08T02:11:53Z",
+  "runs": [
+    {
+      "id": "20260704_132532",
+      "date": "2026-07-04",
+      "methodology": 2,
+      "results": [
+        {"ssg": "astro", "scenario": "minimal", "page_count": 1000, "avg_time_ms": 7622, "min_time_ms": 7610, "max_time_ms": 7662, "peak_memory_kb": 772828, "output_files": 1001},
+        {"ssg": "docusaurus", "scenario": "minimal", "page_count": 1000, "avg_time_ms": 36199, "min_time_ms": 36011, "max_time_ms": 36973, "peak_memory_kb": 2770104, "output_files": 1103},
+        {"ssg": "eleventy", "scenario": "blog", "page_count": 1000, "avg_time_ms": 1554, "min_time_ms": 1540, "max_time_ms": 1568, "peak_memory_kb": 187220, "output_files": 1111},
+        {"ssg": "eleventy", "scenario": "heavy", "page_count": 1000, "avg_time_ms": 2149, "min_time_ms": 2146, "max_time_ms": 2167, "peak_memory_kb": 201348, "output_files": 1111},
+        {"ssg": "eleventy", "scenario": "minimal", "page_count": 1000, "avg_time_ms": 1206, "min_time_ms": 1199, "max_time_ms": 1210, "peak_memory_kb": 156916, "output_files": 1002},
+        {"ssg": "gatsby", "scenario": "minimal", "page_count": 1000, "avg_time_ms": 27437, "min_time_ms": 26875, "max_time_ms": 27951, "peak_memory_kb": 2697452, "output_files": 1002},
+        {"ssg": "hexo", "scenario": "blog", "page_count": 1000, "avg_time_ms": 2183, "min_time_ms": 2131, "max_time_ms": 2185, "peak_memory_kb": 327952, "output_files": 1111},
+        {"ssg": "hexo", "scenario": "heavy", "page_count": 1000, "avg_time_ms": 2948, "min_time_ms": 2905, "max_time_ms": 3014, "peak_memory_kb": 360428, "output_files": 1111},
+        {"ssg": "hexo", "scenario": "minimal", "page_count": 1000, "avg_time_ms": 1356, "min_time_ms": 1355, "max_time_ms": 1367, "peak_memory_kb": 194824, "output_files": 1002},
+        {"ssg": "hugo", "scenario": "blog", "page_count": 1000, "avg_time_ms": 1110, "min_time_ms": 1079, "max_time_ms": 1168, "peak_memory_kb": 175004, "output_files": 1113},
+        {"ssg": "hugo", "scenario": "heavy", "page_count": 1000, "avg_time_ms": 1334, "min_time_ms": 1207, "max_time_ms": 1341, "peak_memory_kb": 179480, "output_files": 1113},
+        {"ssg": "hugo", "scenario": "minimal", "page_count": 1000, "avg_time_ms": 456, "min_time_ms": 455, "max_time_ms": 469, "peak_memory_kb": 94864, "output_files": 1002},
+        {"ssg": "hwaro", "scenario": "blog", "page_count": 1000, "avg_time_ms": 591, "min_time_ms": 587, "max_time_ms": 619, "peak_memory_kb": 72984, "output_files": 1112},
+        {"ssg": "hwaro", "scenario": "heavy", "page_count": 1000, "avg_time_ms": 1503, "min_time_ms": 1490, "max_time_ms": 1537, "peak_memory_kb": 73572, "output_files": 1112},
+        {"ssg": "hwaro", "scenario": "minimal", "page_count": 1000, "avg_time_ms": 443, "min_time_ms": 440, "max_time_ms": 450, "peak_memory_kb": 55560, "output_files": 1002},
+        {"ssg": "jekyll", "scenario": "blog", "page_count": 1000, "avg_time_ms": 2897, "min_time_ms": 2829, "max_time_ms": 2991, "peak_memory_kb": 104868, "output_files": 1111},
+        {"ssg": "jekyll", "scenario": "heavy", "page_count": 1000, "avg_time_ms": 3124, "min_time_ms": 3088, "max_time_ms": 3150, "peak_memory_kb": 106936, "output_files": 1111},
+        {"ssg": "jekyll", "scenario": "minimal", "page_count": 1000, "avg_time_ms": 1603, "min_time_ms": 1576, "max_time_ms": 1748, "peak_memory_kb": 77872, "output_files": 1002},
+        {"ssg": "pelican", "scenario": "blog", "page_count": 1000, "avg_time_ms": 2620, "min_time_ms": 2586, "max_time_ms": 2626, "peak_memory_kb": 52916, "output_files": 1110},
+        {"ssg": "pelican", "scenario": "heavy", "page_count": 1000, "avg_time_ms": 2703, "min_time_ms": 2679, "max_time_ms": 2760, "peak_memory_kb": 53052, "output_files": 1110},
+        {"ssg": "pelican", "scenario": "minimal", "page_count": 1000, "avg_time_ms": 1226, "min_time_ms": 1207, "max_time_ms": 1252, "peak_memory_kb": 45280, "output_files": 1001},
+        {"ssg": "zola", "scenario": "blog", "page_count": 1000, "avg_time_ms": 957, "min_time_ms": 925, "max_time_ms": 1195, "peak_memory_kb": 216944, "output_files": 1114},
+        {"ssg": "zola", "scenario": "heavy", "page_count": 1000, "avg_time_ms": 28206, "min_time_ms": 28104, "max_time_ms": 28344, "peak_memory_kb": 1111324, "output_files": 1114},
+        {"ssg": "zola", "scenario": "minimal", "page_count": 1000, "avg_time_ms": 421, "min_time_ms": 420, "max_time_ms": 421, "peak_memory_kb": 74032, "output_files": 1003}
+      ]
+    }    ,
+    {
+      "id": "20260708_095914",
+      "date": "2026-07-08",
+      "methodology": 2,
+      "results": [
+        {"ssg": "astro", "scenario": "minimal", "page_count": 1000, "avg_time_ms": 7405, "min_time_ms": 7138, "max_time_ms": 7437, "peak_memory_kb": 775496, "output_files": 1001},
+        {"ssg": "docusaurus", "scenario": "minimal", "page_count": 1000, "avg_time_ms": 34135, "min_time_ms": 34036, "max_time_ms": 34155, "peak_memory_kb": 3081952, "output_files": 1103},
+        {"ssg": "eleventy", "scenario": "blog", "page_count": 1000, "avg_time_ms": 1556, "min_time_ms": 1521, "max_time_ms": 1602, "peak_memory_kb": 189064, "output_files": 1111},
+        {"ssg": "eleventy", "scenario": "heavy", "page_count": 1000, "avg_time_ms": 2140, "min_time_ms": 2064, "max_time_ms": 2165, "peak_memory_kb": 201124, "output_files": 1111},
+        {"ssg": "eleventy", "scenario": "minimal", "page_count": 1000, "avg_time_ms": 1231, "min_time_ms": 1225, "max_time_ms": 1291, "peak_memory_kb": 160592, "output_files": 1002},
+        {"ssg": "gatsby", "scenario": "minimal", "page_count": 1000, "avg_time_ms": 31507, "min_time_ms": 31128, "max_time_ms": 31815, "peak_memory_kb": 3325332, "output_files": 1002},
+        {"ssg": "hexo", "scenario": "blog", "page_count": 1000, "avg_time_ms": 2047, "min_time_ms": 2045, "max_time_ms": 2071, "peak_memory_kb": 322672, "output_files": 1111},
+        {"ssg": "hexo", "scenario": "heavy", "page_count": 1000, "avg_time_ms": 2957, "min_time_ms": 2843, "max_time_ms": 3161, "peak_memory_kb": 362812, "output_files": 1111},
+        {"ssg": "hexo", "scenario": "minimal", "page_count": 1000, "avg_time_ms": 1333, "min_time_ms": 1332, "max_time_ms": 1374, "peak_memory_kb": 189600, "output_files": 1002},
+        {"ssg": "hugo", "scenario": "blog", "page_count": 1000, "avg_time_ms": 1124, "min_time_ms": 1111, "max_time_ms": 1158, "peak_memory_kb": 174840, "output_files": 1113},
+        {"ssg": "hugo", "scenario": "heavy", "page_count": 1000, "avg_time_ms": 1304, "min_time_ms": 1295, "max_time_ms": 1355, "peak_memory_kb": 186880, "output_files": 1113},
+        {"ssg": "hugo", "scenario": "minimal", "page_count": 1000, "avg_time_ms": 506, "min_time_ms": 497, "max_time_ms": 567, "peak_memory_kb": 94672, "output_files": 1002},
+        {"ssg": "hwaro", "scenario": "blog", "page_count": 1000, "avg_time_ms": 599, "min_time_ms": 571, "max_time_ms": 666, "peak_memory_kb": 73464, "output_files": 1112},
+        {"ssg": "hwaro", "scenario": "heavy", "page_count": 1000, "avg_time_ms": 1512, "min_time_ms": 1490, "max_time_ms": 1670, "peak_memory_kb": 75312, "output_files": 1112},
+        {"ssg": "hwaro", "scenario": "minimal", "page_count": 1000, "avg_time_ms": 486, "min_time_ms": 476, "max_time_ms": 488, "peak_memory_kb": 70820, "output_files": 1002},
+        {"ssg": "jekyll", "scenario": "blog", "page_count": 1000, "avg_time_ms": 2827, "min_time_ms": 2811, "max_time_ms": 2867, "peak_memory_kb": 104720, "output_files": 1111},
+        {"ssg": "jekyll", "scenario": "heavy", "page_count": 1000, "avg_time_ms": 3026, "min_time_ms": 2969, "max_time_ms": 3054, "peak_memory_kb": 107600, "output_files": 1111},
+        {"ssg": "jekyll", "scenario": "minimal", "page_count": 1000, "avg_time_ms": 1586, "min_time_ms": 1570, "max_time_ms": 1720, "peak_memory_kb": 78004, "output_files": 1002},
+        {"ssg": "pelican", "scenario": "blog", "page_count": 1000, "avg_time_ms": 2598, "min_time_ms": 2547, "max_time_ms": 2607, "peak_memory_kb": 53764, "output_files": 1110},
+        {"ssg": "pelican", "scenario": "heavy", "page_count": 1000, "avg_time_ms": 2647, "min_time_ms": 2641, "max_time_ms": 2658, "peak_memory_kb": 53908, "output_files": 1110},
+        {"ssg": "pelican", "scenario": "minimal", "page_count": 1000, "avg_time_ms": 1230, "min_time_ms": 1223, "max_time_ms": 1262, "peak_memory_kb": 45912, "output_files": 1001},
+        {"ssg": "zola", "scenario": "blog", "page_count": 1000, "avg_time_ms": 919, "min_time_ms": 894, "max_time_ms": 939, "peak_memory_kb": 216844, "output_files": 1114},
+        {"ssg": "zola", "scenario": "heavy", "page_count": 1000, "avg_time_ms": 28123, "min_time_ms": 27803, "max_time_ms": 28249, "peak_memory_kb": 1111968, "output_files": 1114},
+        {"ssg": "zola", "scenario": "minimal", "page_count": 1000, "avg_time_ms": 506, "min_time_ms": 461, "max_time_ms": 532, "peak_memory_kb": 74468, "output_files": 1003}
+      ]
+    }
+  ]
+}

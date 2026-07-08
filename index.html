@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Static Site Generator Build Performance Benchmark">
+  <meta name="theme-color" content="#0b0c09">
+  <title>Dashboard - SSG Benchmark</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='24' fill='%230b0c09'/%3E%3Ccircle cx='50' cy='50' r='26' fill='%23cdf655'/%3E%3C/svg%3E">
+  <meta property="og:title" content="Dashboard">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://hahwul.github.io/ssg-benchmark/">
+  <meta property="og:description" content="Static Site Generator Build Performance Benchmark">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Dashboard">
+  <meta name="twitter:description" content="Static Site Generator Build Performance Benchmark">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400..700&family=Geist+Mono:wght@400..600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <style>
+    :root {
+      --bg: #0b0c09;
+      --bg-raised: #12140e;
+      --panel: rgba(255, 255, 255, 0.025);
+      --panel-hover: rgba(255, 255, 255, 0.045);
+      --line: rgba(255, 255, 255, 0.07);
+      --line-strong: rgba(255, 255, 255, 0.14);
+      --text: #edefe6;
+      --text-muted: #969c8f;
+      --text-dim: #686e61;
+      --accent: #cdf655;
+      --accent-soft: rgba(205, 246, 85, 0.14);
+      --accent-glow: rgba(205, 246, 85, 0.09);
+      --font-ui: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --font-mono: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+      --r-sm: 6px;
+      --r-md: 10px;
+      --r-lg: 16px;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+    body {
+      margin: 0;
+      color: var(--text);
+      font-family: var(--font-ui);
+      line-height: 1.6;
+      background:
+        radial-gradient(900px 420px at 50% -160px, var(--accent-glow), transparent 70%),
+        var(--bg);
+      touch-action: manipulation;
+    }
+    .site-wrapper { max-width: 1160px; margin: 0 auto; padding: 0 20px; }
+    a { color: var(--text); text-decoration: none; }
+    a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--r-sm); }
+
+    /* Header */
+    .site-header { display: flex; align-items: center; justify-content: space-between; padding: 22px 0; }
+    .site-logo { display: inline-flex; align-items: center; gap: 10px; font-weight: 650; font-size: 1rem; letter-spacing: -0.01em; }
+    .logo-mark { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 14px 2px var(--accent-soft); }
+    .site-header nav a {
+      display: inline-flex; align-items: center; gap: 7px;
+      font-family: var(--font-mono); font-size: 0.78rem; color: var(--text-muted);
+      border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px;
+      transition: color 0.15s, border-color 0.15s, background-color 0.15s, transform 0.1s;
+    }
+    @media (hover: hover) {
+      .site-header nav a:hover { color: var(--text); border-color: var(--line-strong); background: var(--panel); }
+    }
+    .site-header nav a:active { transform: scale(0.96); }
+
+    /* Page head */
+    .page-head { padding: 26px 0 30px; }
+    .page-head h1 { margin: 0 0 6px; font-size: 1.7rem; font-weight: 650; letter-spacing: -0.022em; line-height: 1.2; text-wrap: balance; }
+    .updated { margin: 0; font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-dim); }
+
+    /* Panels */
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--r-lg);
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+    .kicker { display: block; font-family: var(--font-mono); font-size: 0.68rem; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); margin-bottom: 6px; }
+    .panel-head h2 { margin: 0; font-size: 1.15rem; font-weight: 600; letter-spacing: -0.012em; line-height: 1.3; }
+    .panel-note { font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-dim); }
+
+    /* Leaderboard */
+    .leaderboard { display: flex; flex-direction: column; }
+    .lb-row {
+      display: grid;
+      grid-template-columns: 2.2rem minmax(11rem, 15rem) 1fr auto;
+      align-items: center;
+      gap: 16px;
+      padding: 11px 10px;
+      border-radius: var(--r-md);
+      transition: background-color 0.15s;
+    }
+    @media (hover: hover) { .lb-row:hover { background: var(--panel-hover); } }
+    .lb-row + .lb-row { border-top: 1px solid rgba(255, 255, 255, 0.04); }
+    .lb-rank { font-family: var(--font-mono); font-size: 0.78rem; color: var(--text-dim); }
+    .lb-row.first .lb-rank { color: var(--sc, var(--accent)); font-weight: 600; }
+    .lb-name { display: inline-flex; align-items: center; gap: 9px; font-weight: 600; font-size: 0.92rem; letter-spacing: -0.005em; min-width: 0; }
+    .lb-name .dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--c, #888); box-shadow: 0 0 10px color-mix(in srgb, var(--c, #888) 45%, transparent); }
+    .lb-lang { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; color: var(--text-dim); border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; white-space: nowrap; }
+    .lb-badge { font-family: var(--font-mono); font-size: 0.62rem; font-weight: 600; letter-spacing: 0.08em; color: #0b0c09; background: var(--sc, var(--accent)); border-radius: 999px; padding: 2px 8px; white-space: nowrap; box-shadow: 0 0 16px color-mix(in srgb, var(--sc, var(--accent)) 22%, transparent); }
+    .lb-track { height: 6px; border-radius: 999px; background: rgba(255, 255, 255, 0.05); overflow: hidden; }
+    .lb-fill {
+      display: block; height: 100%; border-radius: 999px;
+      background: var(--c, #888);
+      transform-origin: left center;
+      animation: sweep 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    .lb-time { font-family: var(--font-mono); font-size: 0.88rem; font-weight: 500; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .lb-time small { display: block; font-size: 0.64rem; font-weight: 400; color: var(--text-dim); }
+    @keyframes sweep { from { transform: scaleX(0); } }
+
+    /* Load-in */
+    .panel, .page-head { animation: rise 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+    .panel:nth-of-type(2) { animation-delay: 60ms; }
+    .panel:nth-of-type(3) { animation-delay: 120ms; }
+    .panel:nth-of-type(4) { animation-delay: 180ms; }
+    .panel:nth-of-type(5) { animation-delay: 240ms; }
+    @keyframes rise { from { opacity: 0; transform: translateY(10px); } }
+
+    /* Charts */
+    .chart-wrapper { position: relative; height: 380px; }
+    .bar-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr)); gap: 28px; }
+    .bar-grid h3 { margin: 0 0 10px; font-family: var(--font-mono); font-size: 0.72rem; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); }
+    .bar-grid .chart-wrapper { height: 280px; }
+
+    /* Controls */
+    .controls { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
+    .controls button {
+      font-family: var(--font-mono); font-size: 0.74rem;
+      color: var(--text-muted); background: transparent;
+      border: 1px solid var(--line); border-radius: 999px;
+      padding: 6px 14px; cursor: pointer;
+      transition: color 0.15s, border-color 0.15s, background-color 0.15s, transform 0.1s;
+    }
+    @media (hover: hover) { .controls button:hover { color: var(--text); border-color: var(--line-strong); } }
+    .controls button:active { transform: scale(0.96); }
+    .controls button.active {
+      background: var(--sc, var(--accent)); border-color: transparent;
+      color: #0b0c09; font-weight: 600;
+      box-shadow: 0 0 18px color-mix(in srgb, var(--sc, var(--accent)) 22%, transparent);
+    }
+    .scenario-controls { margin-bottom: 6px; }
+    .scenario-note { margin: 0 0 18px; max-width: 62ch; }
+
+    /* Scenario triptych */
+    .triptych { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+    .tri-col {
+      position: relative;
+      display: flex; flex-direction: column;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      padding: 16px 16px 13px;
+      cursor: pointer;
+      overflow: hidden;
+      transition: border-color 0.18s, background-color 0.18s, transform 0.12s, box-shadow 0.18s;
+    }
+    .tri-col::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--sc), transparent);
+      opacity: 0.25;
+      transition: opacity 0.18s;
+    }
+    @media (hover: hover) {
+      .tri-col:hover { background: var(--panel-hover); border-color: color-mix(in srgb, var(--sc) 32%, transparent); }
+      .tri-col:hover::before { opacity: 0.6; }
+    }
+    .tri-col:active { transform: scale(0.985); }
+    .tri-col.active {
+      border-color: color-mix(in srgb, var(--sc) 50%, transparent);
+      background: color-mix(in srgb, var(--sc) 4%, transparent);
+      box-shadow: 0 0 28px -6px color-mix(in srgb, var(--sc) 22%, transparent);
+    }
+    .tri-col.active::before { opacity: 1; }
+    .tri-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+    .tri-name {
+      font-family: var(--font-mono); font-size: 0.72rem; font-weight: 600;
+      letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--sc);
+      text-shadow: 0 0 14px color-mix(in srgb, var(--sc) 35%, transparent);
+    }
+    .tri-tagline { font-family: var(--font-mono); font-size: 0.64rem; color: var(--text-dim); white-space: nowrap; }
+    .tri-list { list-style: none; margin: 14px 0 12px; padding: 0; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+    .tri-row {
+      display: grid;
+      grid-template-columns: 5.6rem 1fr auto;
+      align-items: center; gap: 9px;
+      font-size: 0.78rem;
+    }
+    .tri-ssg { display: inline-flex; align-items: center; gap: 6px; font-weight: 550; letter-spacing: -0.005em; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tri-ssg .dot { flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--c, #888); box-shadow: 0 0 8px color-mix(in srgb, var(--c, #888) 40%, transparent); }
+    .tri-track { height: 4px; border-radius: 999px; background: rgba(255, 255, 255, 0.05); overflow: hidden; }
+    .tri-fill {
+      display: block; height: 100%; border-radius: 999px;
+      background: var(--sc); opacity: 0.38;
+      transform-origin: left center;
+      animation: sweep 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    .tri-row.first .tri-fill { opacity: 1; box-shadow: 0 0 10px color-mix(in srgb, var(--sc) 45%, transparent); }
+    .tri-time { font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .tri-row.first .tri-time { color: var(--sc); font-weight: 600; }
+    .tri-foot { font-family: var(--font-mono); font-size: 0.62rem; color: var(--text-dim); }
+    @media (max-width: 860px) {
+      .triptych { grid-template-columns: 1fr; }
+      .tri-col { padding: 14px 14px 11px; }
+    }
+
+    /* Table */
+    .table-scroll { max-height: 540px; overflow: auto; border: 1px solid var(--line); border-radius: var(--r-md); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    thead th {
+      position: sticky; top: 0; z-index: 1;
+      background: var(--bg-raised);
+      font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500;
+      letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted);
+      padding: 12px 14px; text-align: left; cursor: pointer; user-select: none; white-space: nowrap;
+      border-bottom: 1px solid var(--line);
+      transition: color 0.15s;
+    }
+    @media (hover: hover) { thead th:hover { color: var(--text); } }
+    th .sort-icon { color: var(--accent); margin-left: 2px; }
+    td { padding: 10px 14px; border-bottom: 1px solid rgba(255, 255, 255, 0.04); }
+    tbody tr:last-child td { border-bottom: none; }
+    th.num, td.num { text-align: right; font-variant-numeric: tabular-nums; }
+    td.num { font-family: var(--font-mono); font-size: 0.8rem; }
+    td.dim { color: var(--text-dim); }
+    td.mono { font-family: var(--font-mono); font-size: 0.78rem; color: var(--text-muted); }
+    @media (hover: hover) { tbody tr:hover td { background: var(--panel-hover); } }
+    .ssg-badge { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; vertical-align: baseline; }
+    .ssg-name { font-weight: 550; text-transform: capitalize; }
+
+    /* Footer */
+    .site-footer { margin-top: 48px; padding: 22px 0 34px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-dim); }
+    .site-footer p { margin: 0; }
+    .site-footer a { color: var(--text-muted); transition: color 0.15s; }
+    @media (hover: hover) { .site-footer a:hover { color: var(--accent); } }
+
+    /* 404 */
+    .not-found { padding: 96px 0; text-align: center; }
+    .not-found .code { font-family: var(--font-mono); font-size: 4.5rem; font-weight: 600; color: var(--accent); letter-spacing: -0.022em; line-height: 1; text-shadow: 0 0 40px var(--accent-soft); }
+    .not-found p { color: var(--text-muted); }
+
+    .site-main { min-height: calc(100vh - 220px); }
+
+    @media (max-width: 640px) {
+      .chart-wrapper { height: 300px; }
+      .panel { padding: 18px 16px; }
+      .lb-row { grid-template-columns: 1.6rem minmax(0, 1fr) auto; row-gap: 8px; padding: 12px 6px; }
+      .lb-rank { grid-row: 1; grid-column: 1; }
+      .lb-name { grid-row: 1; grid-column: 2; flex-wrap: wrap; }
+      .lb-time { grid-row: 1; grid-column: 3; }
+      .lb-track { grid-row: 2; grid-column: 1 / -1; }
+      .lb-time small { display: inline; margin-left: 5px; }
+      .lb-lang { display: none; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .panel, .page-head, .lb-fill, .tri-fill { animation: none; }
+      .controls button:active, .site-header nav a:active, .tri-col:active { transform: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="site-wrapper">
+    <header class="site-header">
+      <a href="https://hahwul.github.io/ssg-benchmark/" class="site-logo"><span class="logo-mark"></span>SSG Benchmark</a>
+      <nav>
+        <a href="https://github.com/hahwul/ssg-benchmark" target="_blank" rel="noopener">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+          GitHub
+        </a>
+      </nav>
+    </header>
+  <main class="site-main">
+    <div class="page-head">
+  <h1 id="build-performance">Build Performance</h1>
+  <p id="updated" class="updated"></p>
+</div>
+<section class="panel triptych-panel" id="triptychPanel" hidden>
+  <div class="panel-head">
+    <div>
+      <span class="kicker">Workloads</span>
+      <h2 id="three-scenarios-one-glance">Three scenarios, one glance</h2>
+    </div>
+    <span class="panel-note" id="triptychNote"></span>
+  </div>
+  <div class="triptych" id="scenarioTriptych"></div>
+</section>
+<div class="controls scenario-controls" id="scenarioControls"></div>
+<p class="updated scenario-note" id="scenarioNote"></p>
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <span class="kicker">Latest run</span>
+      <h2 id="leaderboard">Leaderboard</h2>
+    </div>
+    <span class="panel-note" id="leaderboard-note"></span>
+  </div>
+  <div class="leaderboard" id="leaderboard-list"></div>
+</section>
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <span class="kicker">Scaling</span>
+      <h2 id="build-scaling-performance">Build Scaling Performance</h2>
+    </div>
+  </div>
+  <div class="chart-wrapper"><canvas id="scalingChart"></canvas></div>
+</section>
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <span class="kicker">Comparison</span>
+      <h2 id="build-time-by-page-count">Build Time by Page Count</h2>
+    </div>
+  </div>
+  <div class="bar-grid" id="barCharts"></div>
+</section>
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <span class="kicker">History</span>
+      <h2 id="historical-trends">Historical Trends</h2>
+    </div>
+  </div>
+  <div class="controls" id="trendControls"></div>
+  <div class="chart-wrapper"><canvas id="trendChart"></canvas></div>
+</section>
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <span class="kicker">Raw data</span>
+      <h2 id="all-results">All Results</h2>
+    </div>
+  </div>
+  <div class="table-scroll">
+    <table id="resultsTable">
+      <thead><tr>
+        <th data-col="run">Run</th>
+        <th data-col="ssg">SSG</th>
+        <th data-col="scenario">Scenario</th>
+        <th data-col="page_count" class="num">Pages</th>
+        <th data-col="avg_time_ms" class="num">Med (ms)</th>
+        <th data-col="min_time_ms" class="num">Min (ms)</th>
+        <th data-col="max_time_ms" class="num">Max (ms)</th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</section>
+
+  </main>
+    <footer class="site-footer">
+      <p>Powered by <a href="https://github.com/hahwul/hwaro">Hwaro</a></p>
+      <p><a href="https://github.com/hahwul/ssg-benchmark">hahwul/ssg-benchmark</a></p>
+    </footer>
+  </div>
+  <script src="https://hahwul.github.io/ssg-benchmark/dashboard.js"></script>
+</body>
+</html>
