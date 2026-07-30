@@ -12,6 +12,8 @@
 #   - Output HTML files are counted per iteration; the summary flags SSGs
 #     whose counts diverge (workload-parity guard).
 #   - Content is deterministic (SEED) and byte-identical across SSGs.
+#   - Timed builds run with --network=none and telemetry disabled, so no SSG
+#     pays a variable network tax. Dependencies are resolved beforehand.
 #
 # Scenarios: minimal (default) | blog | heavy — see METHODOLOGY.md.
 
@@ -58,6 +60,10 @@ VERBOSE="${VERBOSE:-false}"
 SEED="${SEED:-42}"
 DOCKER_CPUS="${DOCKER_CPUS:-4}"
 DOCKER_MEMORY="${DOCKER_MEMORY:-4g}"
+# Timed builds are network-isolated by default. Set BUILD_NETWORK=bridge only
+# to debug a build that legitimately needs the network — results produced that
+# way are not comparable with isolated ones.
+BUILD_NETWORK="${BUILD_NETWORK:-none}"
 
 usage() {
     echo "Usage: $0 [OPTIONS]"
@@ -74,7 +80,8 @@ usage() {
     echo ""
     echo "Environment variables:"
     echo "  PAGE_COUNTS, ITERATIONS, WARMUP, SSGS, SCENARIOS, USE_DOCKER, SEED,"
-    echo "  DOCKER_CPUS (default 4), DOCKER_MEMORY (default 4g)"
+    echo "  DOCKER_CPUS (default 4), DOCKER_MEMORY (default 4g),"
+    echo "  BUILD_NETWORK (default none — timed builds are network-isolated)"
     echo ""
     echo "Examples:"
     echo "  $0 -s hugo,zola -p 100,1000 -i 5"
@@ -119,7 +126,13 @@ log "Scenarios: ${SCENARIOS}"
 log "Page counts: ${PAGE_COUNTS}"
 log "Iterations: ${ITERATIONS} (+${WARMUP} warmup)"
 log "Using Docker: ${USE_DOCKER} (cpus=${DOCKER_CPUS}, memory=${DOCKER_MEMORY})"
+log "Build network: ${BUILD_NETWORK}"
 log "Content seed: ${SEED}"
+
+if [ "$USE_DOCKER" != "true" ]; then
+    log_warn "Local mode: builds are NOT network-isolated and share the host's"
+    log_warn "installed toolchains. Use Docker mode for comparable numbers."
+fi
 
 if [ "$USE_DOCKER" = "true" ]; then
     if ! command -v docker &> /dev/null; then
@@ -446,16 +459,37 @@ EOF
 # Benchmark execution
 # =============================================================================
 
+# Environment applied to every timed build, so no SSG pays a network tax the
+# others don't. Several node-based generators phone home during `build`
+# (analytics pings, update-notifier checks); the latency of those requests —
+# and whether they time out at all — depends on the host's connectivity that
+# minute, not on the generator's speed.
+build_env_flags() {
+    printf '%s' \
+        "-e DO_NOT_TRACK=1 " \
+        "-e GATSBY_TELEMETRY_DISABLED=1 " \
+        "-e ASTRO_TELEMETRY_DISABLED=1 " \
+        "-e NEXT_TELEMETRY_DISABLED=1 " \
+        "-e NO_UPDATE_NOTIFIER=1 " \
+        "-e NPM_CONFIG_UPDATE_NOTIFIER=false " \
+        "-e NPM_CONFIG_FUND=false " \
+        "-e NPM_CONFIG_AUDIT=false " \
+        "-e NO_COLOR=1 "
+}
+
 # Echoes: build_time_ms,peak_memory_kb,status
 run_docker_benchmark() {
     local ssg=$1 site_dir=$2 label=$3
     local container_name="ssg-bench-${ssg}-$$"
     local build_time=0 peak_memory=0 status="success" rc
 
+    # shellcheck disable=SC2046 # build_env_flags is a deliberately split arg list
     docker run --rm \
         --name "$container_name" \
         --memory="$DOCKER_MEMORY" \
         --cpus="$DOCKER_CPUS" \
+        --network="$BUILD_NETWORK" \
+        $(build_env_flags) \
         -v "${site_dir}:/site:rw" \
         "ssg-benchmark-${ssg}" \
         sh /site/.bench/run.sh > "${BENCHMARK_RESULTS_DIR}/${label}.container.log" 2>&1
@@ -530,6 +564,38 @@ is_ssg_runnable() {
     return 1
 }
 
+# Resolve every dependency the build will need, with the network still
+# available and the clock not running. After this returns, the timed builds run
+# with --network=none, so anything left unresolved fails loudly instead of
+# quietly costing one SSG a few hundred milliseconds of socket timeouts.
+prepare_dependencies() {
+    local ssg=$1 site_dir=$2 label=$3
+
+    [ "$USE_DOCKER" = "true" ] || return 0
+
+    case $ssg in
+        gatsby|astro|docusaurus|hexo)
+            [ -f "${site_dir}/package.json" ] || return 0
+            log "    Installing npm dependencies (outside timing)..."
+            docker run --rm -v "${site_dir}:/site:rw" "ssg-benchmark-${ssg}" \
+                sh -c "cd /site && npm install --no-audit --no-fund" \
+                > "${BENCHMARK_RESULTS_DIR}/${label}_npm.log" 2>&1 \
+                || log_warn "    npm install reported errors — see ${label}_npm.log"
+            ;;
+        jekyll)
+            [ -f "${site_dir}/Gemfile" ] || return 0
+            # Without a lockfile `bundle exec` resolves on every build, and on a
+            # network-isolated build that resolution fails. Materialise the lock
+            # here instead.
+            log "    Resolving bundler dependencies (outside timing)..."
+            docker run --rm -v "${site_dir}:/site:rw" "ssg-benchmark-jekyll" \
+                sh -c "cd /site && bundle lock --local || bundle lock" \
+                > "${BENCHMARK_RESULTS_DIR}/${label}_bundle.log" 2>&1 \
+                || log_warn "    bundle lock reported errors — see ${label}_bundle.log"
+            ;;
+    esac
+}
+
 run_benchmarks() {
     local benchmarked_count=0
 
@@ -555,17 +621,8 @@ run_benchmarks() {
                 assemble_site "$ssg" "$scenario" "$page_count" "$temp_site_dir"
                 write_bench_script "$temp_site_dir" "$(build_cmd_for "$ssg")"
 
-                # Install npm dependencies for node-based SSGs (outside timing)
-                if [ "$USE_DOCKER" = "true" ] && [ -f "${temp_site_dir}/package.json" ]; then
-                    case $ssg in
-                        gatsby|astro|docusaurus|hexo)
-                            log "    Installing npm dependencies in Docker..."
-                            docker run --rm -v "${temp_site_dir}:/site:rw" "ssg-benchmark-${ssg}" \
-                                sh -c "cd /site && npm install" \
-                                > "${BENCHMARK_RESULTS_DIR}/${ssg}_${scenario}_${page_count}_npm.log" 2>&1 || true
-                            ;;
-                    esac
-                fi
+                prepare_dependencies "$ssg" "$temp_site_dir" \
+                    "${ssg}_${scenario}_${page_count}"
 
                 # Warmup builds: warm OS page cache / JIT, results discarded
                 # (BSD seq counts down for "seq 1 0", so guard explicitly)
@@ -634,6 +691,7 @@ write_run_metadata() {
   "use_docker": "${USE_DOCKER}",
   "docker_cpus": "${DOCKER_CPUS}",
   "docker_memory": "${DOCKER_MEMORY}",
+  "build_network": "${BUILD_NETWORK}",
   "host": "$(uname -sm)",
   "host_cpus": "$(host_cpu_count)",
   "docker_version": "${docker_version}",
