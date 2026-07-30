@@ -82,6 +82,11 @@ MEMORY_PRESSURE_WARNINGS=""
 # the output. Set STRICT_VERIFY=true to fail the run when they are not.
 VERIFY_OUTPUT="${VERIFY_OUTPUT:-true}"
 STRICT_VERIFY="${STRICT_VERIFY:-false}"
+# Fail the run when the output-parity guard fires. Off by default so an
+# exploratory run still produces its artifacts; on in CI, where a parity
+# mismatch means the published comparison would be invalid.
+STRICT_PARITY="${STRICT_PARITY:-false}"
+PARITY_FAILED=0
 
 usage() {
     echo "Usage: $0 [OPTIONS]"
@@ -102,7 +107,7 @@ usage() {
     echo "  DOCKER_CPUSET (optional CPU pinning, e.g. 0-3),"
     echo "  BUILD_NETWORK (default none — timed builds are network-isolated),"
     echo "  EXEC_ORDER (interleaved | sequential, default interleaved),"
-    echo "  VERIFY_OUTPUT (default true), STRICT_VERIFY (default false)"
+    echo "  VERIFY_OUTPUT (default true), STRICT_VERIFY / STRICT_PARITY (default false)"
     echo ""
     echo "Examples:"
     echo "  $0 -s hugo,zola -p 100,1000 -i 5"
@@ -137,8 +142,9 @@ mkdir -p "$BENCHMARK_RESULTS_DIR"
 RESULTS_FILE="${BENCHMARK_RESULTS_DIR}/results.csv"
 SUMMARY_FILE="${BENCHMARK_RESULTS_DIR}/summary.md"
 
-# CSV schema v2 (scenario + output_files; memory is real; no fake cpu column)
-echo "ssg,scenario,page_count,iteration,build_time_ms,peak_memory_kb,output_files,status" > "$RESULTS_FILE"
+# CSV schema v2.1. post_files is appended *after* status so the column
+# positions v2 readers rely on (status at field 8) are unchanged.
+echo "ssg,scenario,page_count,iteration,build_time_ms,peak_memory_kb,output_files,status,post_files" > "$RESULTS_FILE"
 
 log "Starting SSG Benchmark (methodology v2)"
 log "Results dir: ${BENCHMARK_RESULTS_DIR}"
@@ -574,6 +580,24 @@ count_output_html() {
     fi
 }
 
+# Post pages only — the pages that correspond 1:1 with the generated corpus.
+#
+# The total HTML count cannot answer "did this SSG render every post?", because
+# index, tag, pagination and archive pages inflate it. An SSG that rendered 900
+# of 1000 posts but emitted 200 aggregate pages still totals 1100 and passes an
+# `output_files < page_count` test, having done 10% less of the work that
+# actually scales.
+count_post_html() {
+    local site_dir=$1 ssg=$2 out_dir
+    out_dir="${site_dir}/$(output_dir_for "$ssg")"
+    if [ -d "$out_dir" ]; then
+        find "$out_dir" -type f -name '*.html' \
+            | grep -cE '/post-[0-9]+(/index)?\.html$' || echo 0
+    else
+        echo 0
+    fi
+}
+
 # The measurement script that runs INSIDE the container. It writes elapsed
 # time, cgroup peak memory and the build's exit code into /site/.bench/.
 write_bench_script() {
@@ -783,7 +807,7 @@ prepare_dependencies() {
 # One measured build + its CSV row.
 record_iteration() {
     local ssg=$1 site_dir=$2 scenario=$3 page_count=$4 iteration=$5
-    local result build_time peak_memory status output_files
+    local result build_time peak_memory status output_files post_files
 
     clean_build_artifacts "$site_dir"
     result=$(run_one_build "$ssg" "$site_dir" "${ssg}_${scenario}_${page_count}_${iteration}")
@@ -791,13 +815,14 @@ record_iteration() {
     peak_memory=$(echo "$result" | cut -d',' -f2)
     status=$(echo "$result" | cut -d',' -f3)
     output_files=$(count_output_html "$site_dir" "$ssg")
+    post_files=$(count_post_html "$site_dir" "$ssg")
 
-    if [ "$status" = "success" ] && [ "$output_files" -lt "$page_count" ]; then
-        log_warn "      ${ssg} built only ${output_files} HTML files for ${page_count} pages"
+    if [ "$status" = "success" ] && [ "$post_files" -lt "$page_count" ]; then
+        log_warn "      ${ssg} rendered only ${post_files} of ${page_count} posts (${output_files} HTML files total)"
         status="undercount"
     fi
 
-    echo "${ssg},${scenario},${page_count},${iteration},${build_time},${peak_memory},${output_files},${status}" >> "$RESULTS_FILE"
+    echo "${ssg},${scenario},${page_count},${iteration},${build_time},${peak_memory},${output_files},${status},${post_files}" >> "$RESULTS_FILE"
 
     if [ "$VERBOSE" = "true" ]; then
         log "      ${ssg}: ${build_time}ms, ${peak_memory}KB, ${output_files} HTML, ${status}"
@@ -1019,7 +1044,18 @@ generate_summary() {
             for page_count in $PAGE_COUNTS; do
                 rows=$(awk -F',' -v s="$ssg" -v n="$scenario" -v p="$page_count" \
                     '$1==s && $2==n && $3==p && $8=="success"' "$RESULTS_FILE")
-                [ -n "$rows" ] || continue
+                if [ -z "$rows" ]; then
+                    # An SSG with zero usable iterations used to vanish from the
+                    # table, so a total failure was indistinguishable from an SSG
+                    # that was never asked to run. Say which happened.
+                    local attempted
+                    attempted=$(awk -F',' -v s="$ssg" -v n="$scenario" -v p="$page_count" \
+                        '$1==s && $2==n && $3==p { c[$8]++ } END { for (k in c) printf "%s×%d ", k, c[k] }' "$RESULTS_FILE")
+                    if [ -n "$attempted" ]; then
+                        echo "| ${ssg} | ${page_count} | — | — | — | — | no usable iterations (${attempted}) |" >> "$SUMMARY_FILE"
+                    fi
+                    continue
+                fi
 
                 times=$(echo "$rows" | cut -d',' -f5)
                 med=$(echo "$times" | median)
@@ -1045,40 +1081,79 @@ generate_summary() {
         echo ""
         echo "Median HTML file counts per (scenario, page count). Large spreads mean"
         echo "the SSGs are NOT doing comparable work — investigate before comparing times."
+        echo "\`UNDERCOUNT\` means an SSG rendered fewer post pages than the corpus"
+        echo "contained, regardless of how many aggregate pages it emitted."
+        echo "Machine-readable verdict: \`parity.json\`."
         echo ""
     } >> "$SUMMARY_FILE"
 
-    local parity_warnings=0
+    # The verdict is also written to parity.json. It used to exist only as prose
+    # in summary.md, so nothing downstream — the dashboard, CI, a reviewer's
+    # script — could tell a clean run from one whose comparison the guard had
+    # already declared invalid.
+    local parity_json="${BENCHMARK_RESULTS_DIR}/parity.json"
+    local parity_warnings=0 parity_first=true
+    {
+        echo '{'
+        echo '  "rule": "mismatch when max_html_files > min * 1.10 + 5",'
+        echo '  "cells": ['
+    } > "$parity_json"
+
     for scenario in $SCENARIOS; do
         for page_count in $PAGE_COUNTS; do
-            local line="" min_files="" max_files=""
+            local line="" min_files="" max_files="" json_ssgs="" undercounts=""
             for ssg in $SSGS; do
                 files=$(awk -F',' -v s="$ssg" -v n="$scenario" -v p="$page_count" \
                     '$1==s && $2==n && $3==p && ($8=="success" || $8=="undercount") {print $7}' "$RESULTS_FILE" | median)
                 [ "$files" = "N/A" ] && continue
                 [ -n "$files" ] || continue
                 line="${line} ${ssg}=${files}"
+                json_ssgs="${json_ssgs}${json_ssgs:+, }\"${ssg}\": ${files}"
                 if [ -z "$min_files" ] || [ "$files" -lt "$min_files" ]; then min_files=$files; fi
                 if [ -z "$max_files" ] || [ "$files" -gt "$max_files" ]; then max_files=$files; fi
+
+                # A per-SSG undercount is a parity failure in its own right,
+                # independent of the cross-SSG spread.
+                if awk -F',' -v s="$ssg" -v n="$scenario" -v p="$page_count" \
+                    '$1==s && $2==n && $3==p && $8=="undercount" { found=1 } END { exit !found }' "$RESULTS_FILE"; then
+                    undercounts="${undercounts}${undercounts:+ }${ssg}"
+                fi
             done
             [ -n "$line" ] || continue
 
-            local verdict="OK"
+            local verdict="OK" ok="true"
             # flag if max > min * 1.10 + 5 (absolute slack absorbs per-framework
             # structural pages: 404, feed redirects, archive index, ...)
             if [ -n "$min_files" ] && [ "$max_files" -gt $(( min_files + min_files / 10 + 5 )) ]; then
-                verdict="**MISMATCH**"
+                verdict="**MISMATCH**"; ok="false"
                 parity_warnings=$((parity_warnings + 1))
                 log_warn "Output parity mismatch (${scenario}, ${page_count} pages):${line}"
             fi
+            if [ -n "$undercounts" ]; then
+                verdict="${verdict} — **UNDERCOUNT**: ${undercounts}"; ok="false"
+                parity_warnings=$((parity_warnings + 1))
+                log_warn "Undercount (${scenario}, ${page_count} pages): ${undercounts}"
+            fi
             echo "- ${scenario} @ ${page_count}p:${line} → ${verdict}" >> "$SUMMARY_FILE"
+
+            [ "$parity_first" = true ] && parity_first=false || echo ',' >> "$parity_json"
+            printf '    {"scenario": "%s", "page_count": %s, "ok": %s, "undercount": "%s", "html_files": {%s}}' \
+                "$scenario" "$page_count" "$ok" "$undercounts" "$json_ssgs" >> "$parity_json"
         done
     done
+
+    {
+        echo ''
+        echo '  ],'
+        echo "  \"ok\": $([ "$parity_warnings" -eq 0 ] && echo true || echo false)"
+        echo '}'
+    } >> "$parity_json"
 
     if [ "$parity_warnings" -eq 0 ]; then
         log_success "Output parity check passed"
     else
-        log_warn "Output parity check found ${parity_warnings} mismatch(es) — see ${SUMMARY_FILE}"
+        log_warn "Output parity check found ${parity_warnings} problem(s) — see ${SUMMARY_FILE}"
+        PARITY_FAILED=1
     fi
 
     # Scenario feature verification: did each SSG actually do the work the
@@ -1168,6 +1243,10 @@ main() {
 
     if [ -n "$VERIFY_FAILURES" ] && [ "$STRICT_VERIFY" = "true" ]; then
         log_error "STRICT_VERIFY: scenario feature checks failed — see ${SUMMARY_FILE}"
+        EXIT_CODE=1
+    fi
+    if [ "$PARITY_FAILED" -ne 0 ] && [ "$STRICT_PARITY" = "true" ]; then
+        log_error "STRICT_PARITY: output parity check failed — see ${SUMMARY_FILE}"
         EXIT_CODE=1
     fi
 
