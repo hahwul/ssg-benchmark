@@ -7,6 +7,8 @@
 #     start/stop, image load, and host-side volume setup).
 #   - Peak memory comes from the container's cgroup (whole process tree).
 #   - Every (ssg, scenario, page_count) gets one unrecorded warmup build.
+#   - Iterations are interleaved round-robin across SSGs (EXEC_ORDER) so that
+#     drift in host performance is shared rather than charged to one SSG.
 #   - Build outputs AND caches (.jekyll-cache, .cache, .docusaurus, db.json,
 #     resources, ...) are removed between iterations: every build is cold.
 #   - Output HTML files are counted per iteration; the summary flags SSGs
@@ -64,6 +66,11 @@ DOCKER_MEMORY="${DOCKER_MEMORY:-4g}"
 # to debug a build that legitimately needs the network — results produced that
 # way are not comparable with isolated ones.
 BUILD_NETWORK="${BUILD_NETWORK:-none}"
+# interleaved (default): round-robin one iteration per SSG, rotating the
+# starting SSG each round, so host drift is shared evenly instead of landing on
+# whoever ran during it. sequential: the old batched order — cheaper on disk,
+# but reintroduces that bias.
+EXEC_ORDER="${EXEC_ORDER:-interleaved}"
 
 usage() {
     echo "Usage: $0 [OPTIONS]"
@@ -81,7 +88,8 @@ usage() {
     echo "Environment variables:"
     echo "  PAGE_COUNTS, ITERATIONS, WARMUP, SSGS, SCENARIOS, USE_DOCKER, SEED,"
     echo "  DOCKER_CPUS (default 4), DOCKER_MEMORY (default 4g),"
-    echo "  BUILD_NETWORK (default none — timed builds are network-isolated)"
+    echo "  BUILD_NETWORK (default none — timed builds are network-isolated),"
+    echo "  EXEC_ORDER (interleaved | sequential, default interleaved)"
     echo ""
     echo "Examples:"
     echo "  $0 -s hugo,zola -p 100,1000 -i 5"
@@ -127,6 +135,7 @@ log "Page counts: ${PAGE_COUNTS}"
 log "Iterations: ${ITERATIONS} (+${WARMUP} warmup)"
 log "Using Docker: ${USE_DOCKER} (cpus=${DOCKER_CPUS}, memory=${DOCKER_MEMORY})"
 log "Build network: ${BUILD_NETWORK}"
+log "Execution order: ${EXEC_ORDER}"
 log "Content seed: ${SEED}"
 
 if [ "$USE_DOCKER" != "true" ]; then
@@ -596,75 +605,164 @@ prepare_dependencies() {
     esac
 }
 
-run_benchmarks() {
-    local benchmarked_count=0
+# One measured build + its CSV row.
+record_iteration() {
+    local ssg=$1 site_dir=$2 scenario=$3 page_count=$4 iteration=$5
+    local result build_time peak_memory status output_files
 
-    for scenario in $SCENARIOS; do
-        log "=== Scenario: ${scenario} ==="
+    clean_build_artifacts "$site_dir"
+    result=$(run_one_build "$ssg" "$site_dir" "${ssg}_${scenario}_${page_count}_${iteration}")
+    build_time=$(echo "$result" | cut -d',' -f1)
+    peak_memory=$(echo "$result" | cut -d',' -f2)
+    status=$(echo "$result" | cut -d',' -f3)
+    output_files=$(count_output_html "$site_dir" "$ssg")
 
-        for ssg in $SSGS; do
-            if ! is_ssg_runnable "$ssg"; then
-                log_warn "Skipping ${ssg}: no Docker image and no local binary"
-                continue
-            fi
-            if ! scenario_supported "$ssg" "$scenario"; then
-                log_warn "Skipping ${ssg} for scenario '${scenario}': not in support matrix (see METHODOLOGY.md)"
-                continue
-            fi
+    if [ "$status" = "success" ] && [ "$output_files" -lt "$page_count" ]; then
+        log_warn "      ${ssg} built only ${output_files} HTML files for ${page_count} pages"
+        status="undercount"
+    fi
 
-            log "Benchmarking: ${ssg} (${scenario})"
+    echo "${ssg},${scenario},${page_count},${iteration},${build_time},${peak_memory},${output_files},${status}" >> "$RESULTS_FILE"
 
-            for page_count in $PAGE_COUNTS; do
-                log "  Testing with ${page_count} pages..."
+    if [ "$VERBOSE" = "true" ]; then
+        log "      ${ssg}: ${build_time}ms, ${peak_memory}KB, ${output_files} HTML, ${status}"
+    fi
+}
 
-                temp_site_dir=$(mktemp -d)
-                assemble_site "$ssg" "$scenario" "$page_count" "$temp_site_dir"
-                write_bench_script "$temp_site_dir" "$(build_cmd_for "$ssg")"
+# Benchmarks one (scenario, page_count) cell across every eligible SSG.
+#
+# Iterations are interleaved, not batched. Running all of hugo's iterations,
+# then all of zola's, means a host that gets slower over the run — thermal
+# throttling, a CI neighbour waking up, a background indexer — charges that
+# slowdown entirely to whichever SSG happened to be running then. Since the SSG
+# order was fixed, that bias was systematic across every run rather than
+# averaging out. Round-robin rounds spread any drift evenly, and rotating the
+# starting SSG each round keeps a fixed position within the round from mattering
+# either.
+#
+# The cost is holding every SSG's site directory at once (node_modules
+# dominates). EXEC_ORDER=sequential restores the old batched behaviour for
+# disk-constrained hosts, at the price of reintroducing the bias.
+run_group() {
+    local scenario=$1 page_count=$2
+    local ssg i n iteration offset idx dir
+    local group_ssgs="" group_dirs=""
 
-                prepare_dependencies "$ssg" "$temp_site_dir" \
-                    "${ssg}_${scenario}_${page_count}"
+    for ssg in $SSGS; do
+        if ! is_ssg_runnable "$ssg"; then
+            log_warn "Skipping ${ssg}: no Docker image and no local binary"
+            continue
+        fi
+        if ! scenario_supported "$ssg" "$scenario"; then
+            log_warn "Skipping ${ssg} for '${scenario}': not in support matrix (see METHODOLOGY.md)"
+            continue
+        fi
 
-                # Warmup builds: warm OS page cache / JIT, results discarded
-                # (BSD seq counts down for "seq 1 0", so guard explicitly)
-                w=1
-                while [ "$w" -le "$WARMUP" ]; do
-                    log "    Warmup ${w}/${WARMUP}..."
-                    clean_build_artifacts "$temp_site_dir"
-                    run_one_build "$ssg" "$temp_site_dir" "${ssg}_${scenario}_${page_count}_warmup${w}" > /dev/null
-                    w=$((w + 1))
-                done
+        log "  Preparing ${ssg} (${scenario}, ${page_count} pages)..."
+        dir=$(mktemp -d)
+        assemble_site "$ssg" "$scenario" "$page_count" "$dir"
+        write_bench_script "$dir" "$(build_cmd_for "$ssg")"
+        prepare_dependencies "$ssg" "$dir" "${ssg}_${scenario}_${page_count}"
 
-                for iteration in $(seq 1 "$ITERATIONS"); do
-                    log "    Iteration ${iteration}/${ITERATIONS}..."
-                    clean_build_artifacts "$temp_site_dir"
+        group_ssgs="${group_ssgs} ${ssg}"
+        group_dirs="${group_dirs} ${dir}"
+        GROUP_TEMP_DIRS="${GROUP_TEMP_DIRS} ${dir}"
+    done
 
-                    result=$(run_one_build "$ssg" "$temp_site_dir" "${ssg}_${scenario}_${page_count}_${iteration}")
-                    build_time=$(echo "$result" | cut -d',' -f1)
-                    peak_memory=$(echo "$result" | cut -d',' -f2)
-                    status=$(echo "$result" | cut -d',' -f3)
-                    output_files=$(count_output_html "$temp_site_dir" "$ssg")
+    # shellcheck disable=SC2206 # deliberate word splitting into arrays
+    local ssgs=($group_ssgs)
+    # shellcheck disable=SC2206
+    local dirs=($group_dirs)
+    n=${#ssgs[@]}
+    [ "$n" -gt 0 ] || { log_warn "  No SSGs eligible for ${scenario} @ ${page_count}p"; return 0; }
 
-                    if [ "$status" = "success" ] && [ "$output_files" -lt "$page_count" ]; then
-                        log_warn "      ${ssg} built only ${output_files} HTML files for ${page_count} pages"
-                        status="undercount"
-                    fi
+    # Warmups: warm OS page cache / JIT, results discarded.
+    # (BSD seq counts down for "seq 1 0", so guard explicitly.)
+    local w=1
+    while [ "$w" -le "$WARMUP" ]; do
+        log "  Warmup round ${w}/${WARMUP}..."
+        for ((i = 0; i < n; i++)); do
+            clean_build_artifacts "${dirs[$i]}"
+            run_one_build "${ssgs[$i]}" "${dirs[$i]}" \
+                "${ssgs[$i]}_${scenario}_${page_count}_warmup${w}" > /dev/null
+        done
+        w=$((w + 1))
+    done
 
-                    echo "${ssg},${scenario},${page_count},${iteration},${build_time},${peak_memory},${output_files},${status}" >> "$RESULTS_FILE"
-
-                    if [ "$VERBOSE" = "true" ]; then
-                        log "      Time: ${build_time}ms, Mem: ${peak_memory}KB, HTML files: ${output_files}, Status: ${status}"
-                    fi
-                done
-
-                rm -rf "$temp_site_dir"
-            done
-
-            log_success "Completed benchmarks for ${ssg} (${scenario})"
-            benchmarked_count=$((benchmarked_count + 1))
+    for iteration in $(seq 1 "$ITERATIONS"); do
+        log "  Iteration round ${iteration}/${ITERATIONS}..."
+        offset=$(( (iteration - 1) % n ))
+        for ((i = 0; i < n; i++)); do
+            idx=$(( (i + offset) % n ))
+            record_iteration "${ssgs[$idx]}" "${dirs[$idx]}" \
+                "$scenario" "$page_count" "$iteration"
         done
     done
 
-    if [ $benchmarked_count -eq 0 ]; then
+    for ((i = 0; i < n; i++)); do
+        rm -rf "${dirs[$i]}"
+    done
+    BENCHMARKED_CELLS=$((BENCHMARKED_CELLS + 1))
+}
+
+# Old behaviour: one SSG at a time, all of its iterations back to back.
+run_group_sequential() {
+    local scenario=$1 page_count=$2 ssg dir w iteration
+
+    for ssg in $SSGS; do
+        is_ssg_runnable "$ssg" || { log_warn "Skipping ${ssg}: not runnable"; continue; }
+        scenario_supported "$ssg" "$scenario" || { log_warn "Skipping ${ssg} for '${scenario}'"; continue; }
+
+        log "  Benchmarking ${ssg} (${scenario}, ${page_count} pages)..."
+        dir=$(mktemp -d)
+        GROUP_TEMP_DIRS="${GROUP_TEMP_DIRS} ${dir}"
+        assemble_site "$ssg" "$scenario" "$page_count" "$dir"
+        write_bench_script "$dir" "$(build_cmd_for "$ssg")"
+        prepare_dependencies "$ssg" "$dir" "${ssg}_${scenario}_${page_count}"
+
+        w=1
+        while [ "$w" -le "$WARMUP" ]; do
+            clean_build_artifacts "$dir"
+            run_one_build "$ssg" "$dir" "${ssg}_${scenario}_${page_count}_warmup${w}" > /dev/null
+            w=$((w + 1))
+        done
+
+        for iteration in $(seq 1 "$ITERATIONS"); do
+            record_iteration "$ssg" "$dir" "$scenario" "$page_count" "$iteration"
+        done
+
+        rm -rf "$dir"
+        BENCHMARKED_CELLS=$((BENCHMARKED_CELLS + 1))
+    done
+}
+
+BENCHMARKED_CELLS=0
+GROUP_TEMP_DIRS=""
+
+cleanup_temp_dirs() {
+    local d
+    for d in $GROUP_TEMP_DIRS; do
+        [ -d "$d" ] && rm -rf "$d"
+    done
+}
+trap cleanup_temp_dirs EXIT INT TERM
+
+run_benchmarks() {
+    local scenario page_count
+
+    for scenario in $SCENARIOS; do
+        log "=== Scenario: ${scenario} ==="
+        for page_count in $PAGE_COUNTS; do
+            log "  --- ${page_count} pages (order: ${EXEC_ORDER}) ---"
+            if [ "$EXEC_ORDER" = "sequential" ]; then
+                run_group_sequential "$scenario" "$page_count"
+            else
+                run_group "$scenario" "$page_count"
+            fi
+        done
+    done
+
+    if [ "$BENCHMARKED_CELLS" -eq 0 ]; then
         log_warn "No SSGs were benchmarked. Check Docker images or local installations."
     fi
 }
@@ -692,6 +790,7 @@ write_run_metadata() {
   "docker_cpus": "${DOCKER_CPUS}",
   "docker_memory": "${DOCKER_MEMORY}",
   "build_network": "${BUILD_NETWORK}",
+  "exec_order": "${EXEC_ORDER}",
   "host": "$(uname -sm)",
   "host_cpus": "$(host_cpu_count)",
   "docker_version": "${docker_version}",
@@ -729,6 +828,7 @@ generate_summary() {
         echo "**Scenarios:** ${SCENARIOS}"
         echo "**Page counts:** ${PAGE_COUNTS}"
         echo "**Iterations:** ${ITERATIONS} (+${WARMUP} warmup, cold builds, median reported)"
+        echo "**Execution order:** ${EXEC_ORDER} | **Build network:** ${BUILD_NETWORK}"
         echo "**Seed:** ${SEED} | **Docker:** cpus=${DOCKER_CPUS} mem=${DOCKER_MEMORY}"
         echo ""
         versions_table
