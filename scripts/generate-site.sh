@@ -50,11 +50,45 @@ aggregate_csv() {
                 if (times[key, i] < mn) mn = times[key, i]
                 if (times[key, i] > mx) mx = times[key, i]
             }
-            printf "%s|%s|%010d\t{\"ssg\": \"%s\", \"scenario\": \"%s\", \"page_count\": %d, \"avg_time_ms\": %d, \"min_time_ms\": %d, \"max_time_ms\": %d, \"peak_memory_kb\": %d, \"output_files\": %d}\n", \
+            m = med(times, key, cnt)
+        # avg_time_ms is a deprecated alias: the value has always been the
+        # median, but the name said otherwise and the dashboard rendered it as
+        # an average. Both are emitted so archived data.json consumers and the
+        # current dashboard agree on the same number.
+        printf "%s|%s|%010d\t{\"ssg\": \"%s\", \"scenario\": \"%s\", \"page_count\": %d, \"median_time_ms\": %d, \"avg_time_ms\": %d, \"min_time_ms\": %d, \"max_time_ms\": %d, \"peak_memory_kb\": %d, \"output_files\": %d, \"iterations\": %d}\n", \
                 ssgs[key], scs[key], pcs[key], ssgs[key], scs[key], pcs[key], \
-                med(times, key, cnt), mn, mx, med(mems, key, cnt), med(fils, key, cnt)
+                m, m, mn, mx, med(mems, key, cnt), med(fils, key, cnt), cnt
         }
     }' "$csv_file" | sort | cut -f2-
+}
+
+# {ssg: "version"} from a run's versions.json, or {} when the run predates it.
+compact_json() {
+    local file=$1 key=$2
+    [ -f "$file" ] || { echo '{}'; return; }
+    python3 - "$file" "$key" <<'PY' 2>/dev/null || echo '{}'
+import json, sys
+try:
+    data = json.load(open(sys.argv[1]))
+except Exception:
+    print("{}"); raise SystemExit
+section = data.get(sys.argv[2]) or {}
+print(json.dumps({k: v.get("version", "unknown") for k, v in section.items()},
+                 sort_keys=True))
+PY
+}
+
+# true / false / null (null = run predates the machine-readable parity verdict)
+parity_verdict() {
+    local file=$1
+    [ -f "$file" ] || { echo 'null'; return; }
+    python3 -c '
+import json, sys
+try:
+    print("true" if json.load(open(sys.argv[1])).get("ok") else "false")
+except Exception:
+    print("null")
+' "$file" 2>/dev/null || echo 'null'
 }
 
 # Start JSON
@@ -91,11 +125,19 @@ for run_dir in $(ls -d "$RESULTS_DIR"/[0-9]*_[0-9]* 2>/dev/null | sort); do
         echo '    ,' >> "$OUTPUT_FILE"
     fi
 
+    # Provenance travels with the numbers. A chart that plots two runs against
+    # each other while one of them failed the parity guard, or measured a
+    # different SSG version, is showing a difference it cannot attribute.
+    versions_json=$(compact_json "$run_dir/versions.json" measured)
+    parity_ok=$(parity_verdict "$run_dir/parity.json")
+
     {
         echo '    {'
         echo "      \"id\": \"$run_id\","
         echo "      \"date\": \"$run_date\","
         echo "      \"methodology\": $methodology,"
+        echo "      \"parity_ok\": $parity_ok,"
+        echo "      \"versions\": $versions_json,"
         echo '      "results": ['
         echo "$results" | sed 's/^/        /' | sed '$!s/$/,/'
         echo '      ]'

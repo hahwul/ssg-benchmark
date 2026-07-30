@@ -532,6 +532,7 @@ clean_build_artifacts() {
 # (highlighting, tag pages, feed, pagination, sidebar, ...). See
 # scripts/verify-output.py for why counting output files is not enough.
 VERIFY_FAILURES=""
+VERIFY_RAN=0
 
 verify_scenario_features() {
     local ssg=$1 site_dir=$2 scenario=$3 page_count=$4
@@ -552,6 +553,7 @@ verify_scenario_features() {
     python3 "${SCRIPT_DIR}/verify-output.py" \
         --ssg "$ssg" --scenario "$scenario" \
         --output-dir "$out_dir" --pages "$page_count" > "$report" 2>/dev/null
+    VERIFY_RAN=$((VERIFY_RAN + 1))
 
     failed=$(python3 -c '
 import json, sys
@@ -1179,8 +1181,11 @@ generate_summary() {
                 echo ""
                 echo "**Timings involving these SSGs are not comparable** until the cause is"
                 echo "fixed: they measure a smaller workload."
+            elif [ "$VERIFY_RAN" -gt 0 ]; then
+                echo "All ${VERIFY_RAN} verified builds produced every feature their"
+                echo "scenario requires."
             else
-                echo "All verified SSGs produced every feature their scenario requires."
+                echo "No builds were verified — nothing ran to completion."
             fi
         } >> "$SUMMARY_FILE"
     fi
