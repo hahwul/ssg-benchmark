@@ -71,6 +71,11 @@ BUILD_NETWORK="${BUILD_NETWORK:-none}"
 # whoever ran during it. sequential: the old batched order — cheaper on disk,
 # but reintroduces that bias.
 EXEC_ORDER="${EXEC_ORDER:-interleaved}"
+# Optional explicit CPU pinning, e.g. DOCKER_CPUSET=0-3. Pinning keeps every
+# SSG on the same physical cores, which matters on hybrid (P/E core) hosts
+# where the scheduler's choice can differ by more than the SSGs do.
+DOCKER_CPUSET="${DOCKER_CPUSET:-}"
+MEMORY_PRESSURE_WARNINGS=""
 
 usage() {
     echo "Usage: $0 [OPTIONS]"
@@ -87,7 +92,8 @@ usage() {
     echo ""
     echo "Environment variables:"
     echo "  PAGE_COUNTS, ITERATIONS, WARMUP, SSGS, SCENARIOS, USE_DOCKER, SEED,"
-    echo "  DOCKER_CPUS (default 4), DOCKER_MEMORY (default 4g),"
+    echo "  DOCKER_CPUS (default 4, clamped to host CPUs), DOCKER_MEMORY (default 4g),"
+    echo "  DOCKER_CPUSET (optional CPU pinning, e.g. 0-3),"
     echo "  BUILD_NETWORK (default none — timed builds are network-isolated),"
     echo "  EXEC_ORDER (interleaved | sequential, default interleaved)"
     echo ""
@@ -150,6 +156,61 @@ if [ "$USE_DOCKER" = "true" ]; then
     fi
     log "Docker version: $(docker --version)"
 fi
+
+host_cpu_count() {
+    if command -v nproc &>/dev/null; then
+        nproc
+    elif [ "$(uname)" = "Darwin" ]; then
+        sysctl -n hw.ncpu 2>/dev/null || echo 0
+    else
+        echo 0
+    fi
+}
+
+# "4g" / "512m" / "2048k" / plain bytes -> KB. 0 when unparseable.
+mem_to_kb() {
+    echo "$1" | awk '{
+        v = $0
+        unit = substr(v, length(v), 1)
+        n = substr(v, 1, length(v) - 1) + 0
+        if (unit == "g" || unit == "G") { print int(n * 1024 * 1024) }
+        else if (unit == "m" || unit == "M") { print int(n * 1024) }
+        else if (unit == "k" || unit == "K") { print int(n) }
+        else if (v + 0 > 0) { print int((v + 0) / 1024) }
+        else { print 0 }
+    }'
+}
+
+# The requested limits are only meaningful if the host can actually supply
+# them. Asking for --cpus=4 on a 2-core runner does not fail; it just silently
+# gives the container everything, so config.json records a limit that was never
+# enforced and two hosts' numbers look comparable when they are not.
+resolve_resource_limits() {
+    HOST_CPUS=$(host_cpu_count)
+    DOCKER_MEMORY_KB=$(mem_to_kb "$DOCKER_MEMORY")
+    DOCKER_CPUS_REQUESTED="$DOCKER_CPUS"
+
+    if [ "$USE_DOCKER" != "true" ]; then
+        DOCKER_MEMORY_KB=0
+        return 0
+    fi
+
+    if [ "$HOST_CPUS" -gt 0 ] 2>/dev/null; then
+        if awk -v a="$DOCKER_CPUS" -v b="$HOST_CPUS" 'BEGIN { exit !(a > b) }'; then
+            log_warn "DOCKER_CPUS=${DOCKER_CPUS} exceeds the host's ${HOST_CPUS} CPUs;"
+            log_warn "clamping to ${HOST_CPUS} so the recorded limit is the enforced one."
+            DOCKER_CPUS="$HOST_CPUS"
+        fi
+    else
+        log_warn "Could not determine host CPU count; --cpus=${DOCKER_CPUS} is unverified."
+    fi
+
+    log "Effective limits: cpus=${DOCKER_CPUS} (host ${HOST_CPUS}), memory=${DOCKER_MEMORY} (swap disabled)"
+    [ -n "$DOCKER_CPUSET" ] && log "CPU pinning: ${DOCKER_CPUSET}"
+    return 0
+}
+
+resolve_resource_limits
 
 # =============================================================================
 # Scenario support matrix
@@ -486,17 +547,27 @@ build_env_flags() {
         "-e NO_COLOR=1 "
 }
 
+cpuset_flag() {
+    [ -n "$DOCKER_CPUSET" ] && printf ' --cpuset-cpus=%s' "$DOCKER_CPUSET"
+}
+
 # Echoes: build_time_ms,peak_memory_kb,status
 run_docker_benchmark() {
     local ssg=$1 site_dir=$2 label=$3
     local container_name="ssg-bench-${ssg}-$$"
     local build_time=0 peak_memory=0 status="success" rc
 
-    # shellcheck disable=SC2046 # build_env_flags is a deliberately split arg list
+    # --memory-swap equal to --memory disables swap for the container. Without
+    # it Docker grants 2x memory as swap, so an SSG that overruns the limit gets
+    # silently paged instead of failing — recorded as "just slower", at a
+    # magnitude that depends entirely on the host's swap device.
+    # shellcheck disable=SC2046 # deliberately split arg lists
     docker run --rm \
         --name "$container_name" \
         --memory="$DOCKER_MEMORY" \
+        --memory-swap="$DOCKER_MEMORY" \
         --cpus="$DOCKER_CPUS" \
+        $(cpuset_flag) \
         --network="$BUILD_NETWORK" \
         $(build_env_flags) \
         -v "${site_dir}:/site:rw" \
@@ -507,9 +578,28 @@ run_docker_benchmark() {
         build_time=$(cat "${site_dir}/.bench/elapsed_ms" 2>/dev/null || echo 0)
         peak_memory=$(cat "${site_dir}/.bench/mem_peak_kb" 2>/dev/null || echo 0)
         rc=$(cat "${site_dir}/.bench/rc" 2>/dev/null || echo 1)
-        [ "$rc" = "0" ] || status="failed"
+        if [ "$rc" != "0" ]; then
+            # 137 = SIGKILL, which under a memory cgroup means the OOM killer.
+            # Distinguishing this matters: an OOM is the limit being too low for
+            # that SSG, not the SSG being broken.
+            if [ "$rc" = "137" ]; then
+                status="oom"
+                log_warn "      ${ssg} was OOM-killed at --memory=${DOCKER_MEMORY}"
+            else
+                status="failed"
+            fi
+        fi
     else
         status="failed"
+    fi
+
+    # A build that finishes just under the cap is fighting the allocator in a
+    # way its rivals are not, so the timing is not comparable even though it
+    # "succeeded".
+    if [ "$status" = "success" ] && [ "$DOCKER_MEMORY_KB" -gt 0 ] \
+       && [ "$peak_memory" -gt $(( DOCKER_MEMORY_KB * 90 / 100 )) ]; then
+        log_warn "      ${ssg} peaked at ${peak_memory}KB, within 10% of the ${DOCKER_MEMORY} cap"
+        MEMORY_PRESSURE_WARNINGS="${MEMORY_PRESSURE_WARNINGS} ${ssg}"
     fi
 
     # Preserve the build log for debugging
@@ -787,26 +877,19 @@ write_run_metadata() {
   "warmup": ${WARMUP},
   "seed": ${SEED},
   "use_docker": "${USE_DOCKER}",
-  "docker_cpus": "${DOCKER_CPUS}",
+  "docker_cpus_requested": "${DOCKER_CPUS_REQUESTED}",
+  "docker_cpus_effective": "${DOCKER_CPUS}",
+  "docker_cpuset": "${DOCKER_CPUSET}",
   "docker_memory": "${DOCKER_MEMORY}",
+  "docker_swap": "disabled",
   "build_network": "${BUILD_NETWORK}",
   "exec_order": "${EXEC_ORDER}",
   "host": "$(uname -sm)",
-  "host_cpus": "$(host_cpu_count)",
+  "host_cpus": "${HOST_CPUS}",
   "docker_version": "${docker_version}",
   "toolchain_versions": "versions.json"
 }
 EOF
-}
-
-host_cpu_count() {
-    if command -v nproc &>/dev/null; then
-        nproc
-    elif [ "$(uname)" = "Darwin" ]; then
-        sysctl -n hw.ncpu 2>/dev/null || echo unknown
-    else
-        echo unknown
-    fi
 }
 
 # median of newline-separated numbers on stdin
@@ -904,6 +987,35 @@ generate_summary() {
         log_success "Output parity check passed"
     else
         log_warn "Output parity check found ${parity_warnings} mismatch(es) — see ${SUMMARY_FILE}"
+    fi
+
+    # Resource-limit incidents: builds that hit the memory cap are not
+    # comparable with builds that had headroom, even when they "succeeded".
+    local oom_rows
+    oom_rows=$(awk -F',' '$8=="oom" { print "- " $1 " (" $2 " @ " $3 "p, iteration " $4 ")" }' "$RESULTS_FILE")
+    if [ -n "$oom_rows" ] || [ -n "$MEMORY_PRESSURE_WARNINGS" ]; then
+        {
+            echo ""
+            echo "## Resource limit incidents"
+            echo ""
+            echo "Builds run with \`--memory=${DOCKER_MEMORY}\` and swap disabled."
+            echo ""
+            if [ -n "$oom_rows" ]; then
+                echo "**OOM-killed** (excluded from the timing tables):"
+                echo ""
+                echo "$oom_rows"
+                echo ""
+            fi
+            if [ -n "$MEMORY_PRESSURE_WARNINGS" ]; then
+                echo "**Within 10% of the memory cap** — these builds were fighting the"
+                echo "allocator in a way the others were not, so their timings are"
+                echo "suspect even though they succeeded:"
+                echo ""
+                echo "$(echo $MEMORY_PRESSURE_WARNINGS | tr ' ' '\n' | sort -u | sed 's/^/- /')"
+                echo ""
+            fi
+            echo "Raise \`DOCKER_MEMORY\` and re-run if either list is non-empty."
+        } >> "$SUMMARY_FILE"
     fi
 
     echo "" >> "$SUMMARY_FILE"
