@@ -52,6 +52,14 @@ const THEME = {
   fontMono: "'Geist Mono', ui-monospace, 'SF Mono', Menlo, monospace"
 };
 
+// data.json historically called the median "avg_time_ms". The field now
+// carries its real name; the old one is still read so archived runs and any
+// external consumer of data.json keep working.
+function buildMs(entry) {
+  if (!entry) return null;
+  return entry.median_time_ms != null ? entry.median_time_ms : entry.avg_time_ms;
+}
+
 let DATA = null;
 let selectedScenario = null;
 let selectedPageCount = null;
@@ -210,7 +218,7 @@ function renderTriptych() {
     refPc = Math.max(refPc || 0, pc);
     const entries = run.results
       .filter(function(r) { return r.page_count === pc; })
-      .sort(function(a, b) { return a.avg_time_ms - b.avg_time_ms; });
+      .sort(function(a, b) { return buildMs(a) - buildMs(b); });
     return { sc: sc, pc: pc, entries: entries, runDate: run.date };
   }).filter(Boolean);
   selectedScenario = prev;
@@ -220,15 +228,15 @@ function renderTriptych() {
 
   container.innerHTML = columns.map(function(col, ci) {
     const accent = SCENARIO_ACCENTS[col.sc] || '#cdf655';
-    const slowest = Math.max.apply(null, col.entries.map(function(e) { return e.avg_time_ms; }));
+    const slowest = Math.max.apply(null, col.entries.map(function(e) { return buildMs(e); }));
     const rows = col.entries.map(function(e, i) {
       const meta = SSG_META[e.ssg] || { color: '#888' };
-      const pct = Math.max(2, (e.avg_time_ms / slowest) * 100);
+      const pct = Math.max(2, (buildMs(e) / slowest) * 100);
       const delay = 120 + ci * 90 + i * 60;
       return '<li class="tri-row' + (i === 0 ? ' first' : '') + '">' +
         '<span class="tri-ssg"><span class="dot" style="--c:' + meta.color + '"></span>' + displayName(e.ssg) + '</span>' +
         '<span class="tri-track"><span class="tri-fill" style="width:' + pct.toFixed(1) + '%;animation-delay:' + delay + 'ms"></span></span>' +
-        '<span class="tri-time">' + formatMs(e.avg_time_ms) + '</span>' +
+        '<span class="tri-time">' + formatMs(buildMs(e)) + '</span>' +
         '</li>';
     }).join('');
     return '<div class="tri-col' + (col.sc === selectedScenario ? ' active' : '') + '"' +
@@ -292,18 +300,18 @@ function renderLeaderboard() {
 
   var refPc = Math.max.apply(null, rows.map(function(r) { return r.entry.page_count; }));
   var main = rows.filter(function(r) { return r.entry.page_count === refPc; })
-    .sort(function(a, b) { return a.entry.avg_time_ms - b.entry.avg_time_ms; });
+    .sort(function(a, b) { return buildMs(a.entry) - buildMs(b.entry); });
   var rest = rows.filter(function(r) { return r.entry.page_count !== refPc; })
-    .sort(function(a, b) { return b.entry.page_count - a.entry.page_count || a.entry.avg_time_ms - b.entry.avg_time_ms; });
+    .sort(function(a, b) { return b.entry.page_count - a.entry.page_count || buildMs(a.entry) - buildMs(b.entry); });
   var ordered = main.concat(rest);
-  var slowest = Math.max.apply(null, ordered.map(function(r) { return r.entry.avg_time_ms; }));
+  var slowest = Math.max.apply(null, ordered.map(function(r) { return buildMs(r.entry); }));
 
   var note = document.getElementById('leaderboard-note');
   if (note) note.textContent = (SCENARIO_LABELS[selectedScenario] || selectedScenario) + ' · median build time @ ' + refPc.toLocaleString() + ' pages';
 
   container.innerHTML = ordered.map(function(row, i) {
     var meta = SSG_META[row.ssg] || { color: '#888', lang: '?', desc: '' };
-    var pct = Math.max(1.5, (row.entry.avg_time_ms / slowest) * 100);
+    var pct = Math.max(1.5, (buildMs(row.entry) / slowest) * 100);
     var isFirst = i === 0 && row.entry.page_count === refPc;
     var pcNote = row.entry.page_count !== refPc
       ? '<small>@ ' + row.entry.page_count.toLocaleString() + ' pages</small>' : '';
@@ -316,7 +324,7 @@ function renderLeaderboard() {
         (isFirst ? '<span class="lb-badge">FASTEST</span>' : '') +
       '</span>' +
       '<span class="lb-track"><span class="lb-fill" style="--c:' + meta.color + ';width:' + pct.toFixed(1) + '%;animation-delay:' + (150 + i * 70) + 'ms"></span></span>' +
-      '<span class="lb-time">' + formatMs(row.entry.avg_time_ms) + pcNote + '</span>' +
+      '<span class="lb-time">' + formatMs(buildMs(row.entry)) + pcNote + '</span>' +
       '</div>';
   }).join('');
 }
@@ -377,7 +385,7 @@ function renderScalingChart() {
   var datasets = ssgs.map(function(ssg) {
     var data = pageCounts.map(function(pc) {
       var entry = run.results.find(function(r) { return r.ssg === ssg && r.page_count === pc; });
-      return entry ? entry.avg_time_ms : null;
+      return entry ? buildMs(entry) : null;
     });
     return lineDataset(ssg, data);
   });
@@ -406,7 +414,7 @@ function renderBarCharts() {
     var canvas = wrapper.querySelector('canvas');
     var data = ssgs.map(function(ssg) {
       var entry = run.results.find(function(r) { return r.ssg === ssg && r.page_count === pc; });
-      return entry ? entry.avg_time_ms : 0;
+      return entry ? buildMs(entry) : 0;
     });
     var colors = ssgs.map(function(s) { return (SSG_META[s] || { color: '#888' }).color; });
 
@@ -480,7 +488,7 @@ function renderTrendChart() {
   var datasets = ssgs.map(function(ssg) {
     var data = runs.map(function(r) {
       var entry = r.results.find(function(d) { return d.ssg === ssg && d.page_count === selectedPageCount; });
-      return entry ? entry.avg_time_ms : null;
+      return entry ? buildMs(entry) : null;
     });
     return lineDataset(ssg, data);
   });
@@ -501,8 +509,13 @@ function renderTable() {
     run.results.forEach(function(r) {
       rows.push({
         run: run.date, runId: run.id, ssg: r.ssg, scenario: scenarioOf(r),
-        page_count: r.page_count, avg_time_ms: r.avg_time_ms,
-        min_time_ms: r.min_time_ms, max_time_ms: r.max_time_ms
+        page_count: r.page_count, median_time_ms: buildMs(r),
+        min_time_ms: r.min_time_ms, max_time_ms: r.max_time_ms,
+        // false = the run's own parity guard said the SSGs did different
+        // amounts of work. null = the run predates the machine-readable
+        // verdict, so we cannot claim either way.
+        parityOk: run.parity_ok,
+        version: (run.versions || {})[r.ssg] || null
       });
     });
   });
@@ -516,12 +529,16 @@ function renderTable() {
 
     tbody.innerHTML = rows.map(function(r) {
       var meta = SSG_META[r.ssg] || { color: '#888' };
+      var parityFlag = r.parityOk === false
+        ? ' <span title="This run failed its output-parity check: the SSGs did not do comparable work.">\u26A0</span>'
+        : '';
+      var versionTitle = r.version ? ' title="' + r.version + '"' : '';
       return '<tr>' +
-        '<td class="mono">' + r.run + '</td>' +
-        '<td><span class="ssg-badge" style="background:' + meta.color + '"></span><span class="ssg-name">' + r.ssg + '</span></td>' +
+        '<td class="mono">' + r.run + parityFlag + '</td>' +
+        '<td' + versionTitle + '><span class="ssg-badge" style="background:' + meta.color + '"></span><span class="ssg-name">' + r.ssg + '</span></td>' +
         '<td class="mono">' + r.scenario + '</td>' +
         '<td class="num mono">' + r.page_count.toLocaleString() + '</td>' +
-        '<td class="num">' + r.avg_time_ms.toLocaleString() + '</td>' +
+        '<td class="num">' + r.median_time_ms.toLocaleString() + '</td>' +
         '<td class="num dim">' + r.min_time_ms.toLocaleString() + '</td>' +
         '<td class="num dim">' + r.max_time_ms.toLocaleString() + '</td>' +
         '</tr>';

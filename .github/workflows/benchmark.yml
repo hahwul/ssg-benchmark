@@ -15,6 +15,10 @@ on:
         description: 'SSGs to benchmark (space-separated)'
         required: false
         default: 'hugo zola jekyll hwaro eleventy pelican hexo'
+      scenarios:
+        description: 'Scenarios (space-separated): minimal blog heavy'
+        required: false
+        default: 'minimal blog heavy'
       page_counts:
         description: 'Page counts to test (space-separated)'
         required: false
@@ -26,14 +30,19 @@ on:
 
 env:
   DEFAULT_SSGS: 'hugo zola jekyll hwaro eleventy pelican hexo'
+  DEFAULT_SCENARIOS: 'minimal blog heavy'
   DEFAULT_PAGE_COUNTS: '10 100 1000'
   DEFAULT_ITERATIONS: '3'
+  # GitHub-hosted runners have 2 vCPUs and ~7GB RAM. Asking for --cpus=4 there
+  # does not cap anything; the runner would report a limit it never enforced.
+  BENCH_DOCKER_CPUS: '2'
+  BENCH_DOCKER_MEMORY: '5g'
 
 jobs:
   benchmark:
     name: Run SSG Benchmark
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
 
     steps:
       - name: Checkout repository
@@ -51,44 +60,57 @@ jobs:
             ${{ runner.os }}-buildx-
 
       - name: Make scripts executable
-        run: chmod +x scripts/*.sh
+        run: chmod +x scripts/*.sh scripts/*.py
 
-      - name: Build Docker images
+      # benchmark.sh builds the images itself, passing docker/versions.env as
+      # --build-arg. Building them here too would duplicate that logic and risk
+      # the two drifting apart, so this step only verifies that every requested
+      # SSG has a Dockerfile before a long run starts.
+      - name: Check Dockerfiles exist
         run: |
           SSGS="${{ github.event.inputs.ssgs || env.DEFAULT_SSGS }}"
+          missing=""
           for ssg in $SSGS; do
-            if [ -f "docker/Dockerfile.${ssg}" ]; then
-              echo "Building image for ${ssg}..."
-              docker build -t ssg-benchmark-${ssg} -f docker/Dockerfile.${ssg} . || echo "Failed to build ${ssg}, skipping..."
-            fi
+            [ -f "docker/Dockerfile.${ssg}" ] || missing="${missing} ${ssg}"
           done
+          if [ -n "$missing" ]; then
+            echo "::error::No Dockerfile for:${missing}"
+            exit 1
+          fi
 
       - name: Run Benchmark
         run: |
           export SSGS="${{ github.event.inputs.ssgs || env.DEFAULT_SSGS }}"
+          export SCENARIOS="${{ github.event.inputs.scenarios || env.DEFAULT_SCENARIOS }}"
           export PAGE_COUNTS="${{ github.event.inputs.page_counts || env.DEFAULT_PAGE_COUNTS }}"
           export ITERATIONS="${{ github.event.inputs.iterations || env.DEFAULT_ITERATIONS }}"
           export USE_DOCKER=true
           export VERBOSE=true
+          export DOCKER_CPUS="${{ env.BENCH_DOCKER_CPUS }}"
+          export DOCKER_MEMORY="${{ env.BENCH_DOCKER_MEMORY }}"
 
           ./scripts/benchmark.sh
 
+      # The run directory is named for its start time, so sorting by name is
+      # sorting by recency. `ls -t` sorted by mtime, which on a fresh checkout
+      # is checkout order — effectively arbitrary.
+      - name: Resolve latest run directory
+        id: latest
+        run: |
+          LATEST=$(ls -1 results/ | grep -E '^[0-9]{8}_[0-9]{6}$' | sort | tail -1)
+          if [ -z "$LATEST" ]; then
+            echo "::error::No run directory produced by benchmark.sh"
+            exit 1
+          fi
+          echo "run_id=${LATEST}" >> "$GITHUB_OUTPUT"
+          echo "dir=results/${LATEST}" >> "$GITHUB_OUTPUT"
+
       - name: Generate Reports
         run: |
-          chmod +x scripts/report.sh
-
-          # Find latest results
-          LATEST=$(ls -t results/ | grep -v ".gitkeep" | head -1)
-          RESULTS_DIR="results/${LATEST}"
-
-          if [ -d "$RESULTS_DIR" ]; then
-            # Generate different report formats
-            ./scripts/report.sh -r "$RESULTS_DIR" -f markdown > "${RESULTS_DIR}/report.md"
-            ./scripts/report.sh -r "$RESULTS_DIR" -f json > "${RESULTS_DIR}/report.json"
-            ./scripts/report.sh -r "$RESULTS_DIR" -f html > "${RESULTS_DIR}/report.html"
-
-            echo "Reports generated in ${RESULTS_DIR}"
-          fi
+          DIR="${{ steps.latest.outputs.dir }}"
+          ./scripts/report.sh -r "$DIR" -f markdown > "${DIR}/report.md"
+          ./scripts/report.sh -r "$DIR" -f json     > "${DIR}/report.json"
+          ./scripts/report.sh -r "$DIR" -f html     > "${DIR}/report.html"
 
       - name: Upload Results Artifact
         uses: actions/upload-artifact@v4
@@ -99,33 +121,45 @@ jobs:
 
       - name: Create Results Summary
         run: |
-          LATEST=$(ls -t results/ | grep -v ".gitkeep" | head -1)
+          DIR="${{ steps.latest.outputs.dir }}"
+          {
+            echo "## 🚀 SSG Benchmark Results"
+            echo ""
+            echo "**Run:** ${{ github.run_number }} (\`${{ steps.latest.outputs.run_id }}\`)"
+            echo "**Date:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+            echo ""
+            cat "${DIR}/summary.md"
+          } >> "$GITHUB_STEP_SUMMARY"
 
-          if [ -f "results/${LATEST}/summary.md" ]; then
-            echo "## 🚀 SSG Benchmark Results" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**Run:** ${{ github.run_number }}" >> $GITHUB_STEP_SUMMARY
-            echo "**Date:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            cat "results/${LATEST}/summary.md" >> $GITHUB_STEP_SUMMARY
+      # A run whose parity guard fired, or whose SSGs skipped scenario features,
+      # produced numbers that must not be published as a comparison. Surface it
+      # loudly rather than committing it quietly.
+      - name: Flag invalid comparisons
+        run: |
+          DIR="${{ steps.latest.outputs.dir }}"
+          if [ -f "${DIR}/parity.json" ] && ! grep -q '"ok": true' "${DIR}/parity.json"; then
+            echo "::warning::Output parity check failed — see ${DIR}/summary.md"
           fi
+          for f in "${DIR}"/verify_*.json; do
+            [ -e "$f" ] || continue
+            if ! grep -q '"ok": true' "$f"; then
+              echo "::warning::Scenario feature verification failed in $(basename "$f")"
+            fi
+          done
 
       - name: Generate Dashboard Data
         run: ./scripts/generate-site.sh
 
-      - name: Commit Results (optional)
+      - name: Commit Results
         if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
 
-          LATEST=$(ls -t results/ | grep -v ".gitkeep" | head -1)
-
-          if [ -n "$LATEST" ]; then
-            git add "results/${LATEST}/" "web/static/data.json"
-            git commit -m "chore: add benchmark results ${LATEST}" || echo "No changes to commit"
-            git push || echo "Failed to push (might need write permissions)"
-          fi
+          git add "${{ steps.latest.outputs.dir }}" web/static/data.json
+          git commit -m "chore: add benchmark results ${{ steps.latest.outputs.run_id }}" \
+            || { echo "No changes to commit"; exit 0; }
+          git push
 
   compare:
     name: Compare with Previous Results
@@ -145,41 +179,11 @@ jobs:
           name: benchmark-results-${{ github.run_number }}
           path: results/
 
+      # This compared column 4 of results.csv, which is `iteration` — so every
+      # "build time" it printed was 1, 2 or 3, and every delta was 0. It also
+      # took the first matching row regardless of scenario or page count, so
+      # even with the right column it would have compared a 10-page minimal
+      # build against a 1000-page heavy one.
       - name: Compare Results
         run: |
-          echo "## 📊 Benchmark Comparison" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-
-          # Get the two most recent result directories
-          RESULTS=($(ls -t results/ | grep -v ".gitkeep" | head -2))
-
-          if [ ${#RESULTS[@]} -ge 2 ]; then
-            CURRENT="${RESULTS[0]}"
-            PREVIOUS="${RESULTS[1]}"
-
-            echo "Comparing **${CURRENT}** with **${PREVIOUS}**" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-
-            # Simple comparison of build times
-            echo "| SSG | Previous (ms) | Current (ms) | Change |" >> $GITHUB_STEP_SUMMARY
-            echo "|-----|---------------|--------------|--------|" >> $GITHUB_STEP_SUMMARY
-
-            for ssg in hugo zola jekyll hwaro eleventy pelican hexo; do
-              PREV_TIME=$(grep "^${ssg}," "results/${PREVIOUS}/results.csv" 2>/dev/null | head -1 | cut -d',' -f4 || echo "N/A")
-              CURR_TIME=$(grep "^${ssg}," "results/${CURRENT}/results.csv" 2>/dev/null | head -1 | cut -d',' -f4 || echo "N/A")
-
-              if [ "$PREV_TIME" != "N/A" ] && [ "$CURR_TIME" != "N/A" ]; then
-                DIFF=$((CURR_TIME - PREV_TIME))
-                if [ $DIFF -gt 0 ]; then
-                  CHANGE="⬆️ +${DIFF}"
-                elif [ $DIFF -lt 0 ]; then
-                  CHANGE="⬇️ ${DIFF}"
-                else
-                  CHANGE="➡️ 0"
-                fi
-                echo "| ${ssg} | ${PREV_TIME} | ${CURR_TIME} | ${CHANGE} |" >> $GITHUB_STEP_SUMMARY
-              fi
-            done
-          else
-            echo "Not enough historical data for comparison." >> $GITHUB_STEP_SUMMARY
-          fi
+          python3 scripts/compare-runs.py results >> "$GITHUB_STEP_SUMMARY"

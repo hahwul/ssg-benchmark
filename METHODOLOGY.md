@@ -46,9 +46,45 @@ The original methodology had several flaws that could flip rankings:
 - **Statistics:** the summary and dashboard report the **median** of the
   recorded iterations (plus min/max). Increase `ITERATIONS` for tighter
   intervals.
+- **Execution order:** iterations are **interleaved** across SSGs — one
+  iteration of every SSG, then the next round, rotating which SSG starts each
+  round (`EXEC_ORDER`, default `interleaved`). Running all of one SSG's
+  iterations back to back charges any drift in host speed — thermal
+  throttling, a noisy neighbour — to whichever SSG happened to be running
+  then, and with a fixed SSG order that bias points the same way every run.
+  `EXEC_ORDER=sequential` restores the batched order for disk-constrained
+  hosts, at the cost of reintroducing it.
+- **Network isolation:** timed builds run with `--network=none` and telemetry
+  disabled (`BUILD_NETWORK`, default `none`). Several node-based generators
+  ping analytics or update-notifier endpoints during `build`; that latency
+  depends on the host's connectivity, not the generator. All dependency
+  resolution (`npm install`, `bundle lock`) happens beforehand, outside timing.
 - **Resource limits:** containers run with `--cpus=4 --memory=4g` by default
-  (`DOCKER_CPUS`, `DOCKER_MEMORY`). All SSGs get identical limits; absolute
-  numbers depend on the host, so only compare within a run.
+  (`DOCKER_CPUS`, `DOCKER_MEMORY`, optional `DOCKER_CPUSET` pinning). `--cpus`
+  is clamped to the host's CPU count, because asking for more than the host
+  has does not fail — it silently enforces nothing while the run records a
+  limit. Swap is disabled (`--memory-swap` = `--memory`) so an SSG that
+  overruns the cap is OOM-killed and recorded as `oom` rather than silently
+  paged and recorded as "slow". Builds finishing within 10% of the cap are
+  flagged. All SSGs get identical limits; absolute numbers depend on the host,
+  so only compare within a run.
+
+## Pinned toolchains
+
+Every SSG version is pinned in [`docker/versions.env`](docker/versions.env) and
+passed to each image as a `--build-arg`; nothing installs a floating version.
+Node-based SSGs additionally pin their npm trees exactly (no caret ranges), and
+Jekyll pins its Gemfile.
+
+This matters beyond reproducibility. Before v2.1 the drift was not uniform:
+hwaro was built from `main` while every other SSG came from a release, and Hugo
+came from Alpine's package (2023-era, and musl-linked) while everything else
+was current and glibc. All Node SSGs now share one base image too — Astro was
+on Node 22 while the rest were on Node 20.
+
+Each run records what it actually measured in `versions.json` (pinned *and*
+observed versions, base OS, language runtime), rendered into `summary.md` and
+carried into the dashboard's `data.json`.
 
 ## Deterministic content
 
@@ -56,10 +92,15 @@ The original methodology had several flaws that could flip rankings:
 
 - The markdown **body of post N is byte-identical across all SSGs** and across
   runs. Only the front-matter format differs per SSG.
-- Titles, dates and tags are pure functions of the post index (no clock, no
-  RNG at emit time), so any two runs — on any machine — benchmark the same
-  input.
-- Bodies are cached under `.corpus/` (`make clean-corpus` to reset).
+- Titles, dates and tags are pure functions of the post index, and the body
+  text comes from an **explicit LCG defined in the script** — not bash's
+  `$RANDOM`, whose generator changed in bash 5.1 and so produced different
+  corpora on macOS and Linux from the same seed.
+- Bodies are cached under `.corpus/`, stamped with the generator revision and
+  the seed; a mismatched stamp regenerates (`make clean-corpus` to force).
+- Each run records a **corpus digest** in `config.json` and `summary.md`. Two
+  runs with the same digest were fed the same bytes; matching configs are not
+  by themselves evidence of that.
 
 ## Scenarios
 
@@ -119,8 +160,50 @@ After every iteration the benchmark counts the HTML files produced. The
 summary compares medians across SSGs per (scenario, page count) and flags a
 **MISMATCH** when `max > min × 1.10 + 5`. If that fires, the SSGs did
 different amounts of work and the timing comparison is invalid — this guard
-is what caught the v1 Hugo 3× page explosion. A per-SSG `undercount` status
-also flags any build that produced fewer HTML files than input pages.
+is what caught the v1 Hugo 3× page explosion.
+
+A per-SSG `undercount` status flags any build that rendered fewer **post**
+pages than the corpus contained. It counts post pages specifically, not total
+HTML: index, tag, pagination and archive pages inflate the total, so an SSG
+that rendered 900 of 1000 posts while emitting 200 aggregate pages would
+otherwise pass a naive `total < page_count` test while doing 10% less of the
+work that scales.
+
+The verdict is written to `parity.json` as well as `summary.md`, so CI and the
+dashboard can distinguish a clean run from one already known to be invalid.
+`STRICT_PARITY=true` makes a mismatch fail the run.
+
+## Scenario feature verification
+
+The parity guard counts files; it cannot see whether the files contain the
+work. A config key an SSG silently ignores — a renamed section, a plugin that
+stopped loading, a template that no longer resolves — makes that SSG skip real
+work while emitting exactly the right number of pages.
+
+After the final iteration, `scripts/verify-output.py` inspects the emitted HTML
+for the features the scenario promised:
+
+| Check | Scenarios | What it asserts |
+|---|---|---|
+| `post_pages`, `post_not_empty` | all | every post rendered, and not to a blank page |
+| `index_page` | all | the site index exists |
+| `tag_pages` | blog, heavy | ≥8 of the 10 tag pages exist |
+| `feed` | blog, heavy | a feed file was emitted |
+| `pagination` | blog, heavy | ≥2 pagination pages exist |
+| `syntax_highlighting` | blog, heavy | code inside `<pre>` was tokenised into spans |
+| `sidebar`, `breadcrumbs`, `post_nav` | heavy | the markers are present on post pages |
+| `sidebar_populated` | heavy | the sidebar's tag cloud is not empty |
+
+The highlighting check is engine-agnostic on purpose: Chroma, Rouge, Pygments,
+Prism, syntect and highlight.js all turn the code into spans, and a build that
+skipped highlighting has none. Reports land in
+`verify_<ssg>_<scenario>_<pages>.json`; failures are tabulated in `summary.md`.
+Non-fatal by default; `STRICT_VERIFY=true` makes them fail the run.
+
+This is also the guard that makes a version bump safe. If Hugo's layout lookup
+changes and `layouts/_default/` stops resolving, Hugo still emits the right
+number of pages — they are simply empty, which nothing else in the suite would
+notice.
 
 ## Known deviations (accepted, O(1) or O(N)-links only)
 
@@ -138,13 +221,24 @@ also flags any build that produced fewer HTML files than input pages.
 - **Jekyll/Eleventy/Hexo have no sitemap plugin enabled**; sitemap is off
   everywhere it is configurable, so only Zola emits one.
 
-## CSV schema (v2)
+## CSV schema (v2.1)
 
 ```csv
-ssg,scenario,page_count,iteration,build_time_ms,peak_memory_kb,output_files,status
-hugo,blog,1000,1,842,45120,1123,success
+ssg,scenario,page_count,iteration,build_time_ms,peak_memory_kb,output_files,status,post_files
+hugo,blog,1000,1,842,45120,1123,success,1000
 ```
 
-`status` ∈ `success` | `failed` | `undercount`. Each run directory also
-contains `config.json` (all knobs + host info), per-iteration build logs, and
-`summary.md` with the median tables and the parity check.
+`status` ∈ `success` | `failed` | `undercount` | `oom`. `post_files` is
+appended after `status` so the field positions v2 readers rely on are
+unchanged.
+
+Each run directory also contains:
+
+| File | Contents |
+|---|---|
+| `config.json` | every knob, host info, effective resource limits, corpus digest |
+| `versions.json` | pinned vs. measured SSG versions, base OS, runtime |
+| `parity.json` | machine-readable output-parity verdict |
+| `verify_*.json` | per-SSG scenario feature checks |
+| `summary.md` | median tables, parity check, feature verification, resource incidents |
+| `*.log` | per-iteration build logs, image build logs, dependency install logs |

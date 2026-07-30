@@ -158,6 +158,37 @@ end
 puts build_pages(load_pages).size'
 )
 
+# =============================================================================
+# Deterministic PRNG
+# =============================================================================
+# Bash's built-in $RANDOM is NOT portable: bash 5.1 replaced the generator, so
+# the same seed produces a different sequence on macOS (bash 3.2) than on a
+# modern Linux runner. The corpus is cached under .corpus/ and shared by every
+# SSG, so a corpus generated on one machine and a corpus generated on another
+# were different input — while the docs promised "any two runs, on any machine,
+# benchmark the same input".
+#
+# This is an explicit 32-bit LCG (glibc constants) so the sequence depends only
+# on the seed. It writes to RNG_VALUE rather than printing, because reading a
+# printed value through $( ) would run the generator in a subshell and discard
+# the state advance.
+RNG_STATE=0
+RNG_VALUE=0
+
+rng_seed() {
+    RNG_STATE=$(( $1 % 2147483648 ))
+}
+
+# rng_next N -> RNG_VALUE in [0, N)
+rng_next() {
+    RNG_STATE=$(( (RNG_STATE * 1103515245 + 12345) % 2147483648 ))
+    RNG_VALUE=$(( (RNG_STATE / 65536) % $1 ))
+}
+
+# Bumped whenever the generator or the source text changes, so a cached corpus
+# from an older revision is regenerated instead of silently reused.
+CORPUS_VERSION="v3-lcg"
+
 # Date derived purely from the page index: valid, unique-ish, reproducible.
 page_date() {
     local i=$1
@@ -196,7 +227,8 @@ emit_paragraphs() {
     local n=$1
     local j
     for j in $(seq 1 "$n"); do
-        echo "${PARAGRAPHS[$((RANDOM % ${#PARAGRAPHS[@]}))]}"
+        rng_next ${#PARAGRAPHS[@]}
+        echo "${PARAGRAPHS[$RNG_VALUE]}"
         echo ""
     done
 }
@@ -215,19 +247,20 @@ generate_body() {
     local title
     title=$(page_title "$i")
 
-    # Seed bash's PRNG per page: body depends only on (SEED, i), never on COUNT.
-    RANDOM=$((SEED + i))
+    # Seed per page: the body depends only on (SEED, i), never on COUNT and
+    # never on which bash is running.
+    rng_seed $((SEED + i))
 
     echo "# ${title}"
     echo ""
-    emit_paragraphs $((3 + RANDOM % 3))
+    rng_next 3; emit_paragraphs $((3 + RNG_VALUE))
     echo "## Section One"
     echo ""
-    emit_paragraphs $((3 + RANDOM % 3))
+    rng_next 3; emit_paragraphs $((3 + RNG_VALUE))
     if [ "$class" = "code" ]; then emit_code_block $((i % 6)); fi
     echo "## Section Two"
     echo ""
-    emit_paragraphs $((3 + RANDOM % 3))
+    rng_next 3; emit_paragraphs $((3 + RNG_VALUE))
     if [ "$class" = "code" ]; then emit_code_block $(((i + 2) % 6)); fi
     echo "## Conclusion"
     echo ""
@@ -236,10 +269,21 @@ generate_body() {
 }
 
 ensure_corpus() {
-    local class corpus_dir i body_file missing=0
+    local class corpus_dir i body_file missing=0 stamp_file stamp want_stamp
     class=$(corpus_class)
     corpus_dir="${CORPUS_ROOT}/${class}"
     mkdir -p "$corpus_dir"
+
+    # The cache is keyed on generator revision *and* seed. Without this, a
+    # corpus produced by an older generator (or a different seed) is silently
+    # reused, and the run compares SSGs against input it cannot describe.
+    stamp_file="${corpus_dir}/.corpus-stamp"
+    want_stamp="${CORPUS_VERSION}:seed=${SEED}"
+    stamp=$(cat "$stamp_file" 2>/dev/null || echo "")
+    if [ -n "$stamp" ] && [ "$stamp" != "$want_stamp" ]; then
+        log "Corpus: cache was built as '${stamp}', need '${want_stamp}' — regenerating"
+        rm -f "${corpus_dir}"/*.md
+    fi
 
     for i in $(seq 1 "$COUNT"); do
         body_file="${corpus_dir}/$(printf "%05d" "$i").md"
@@ -248,11 +292,30 @@ ensure_corpus() {
             missing=$((missing + 1))
         fi
     done
+    echo "$want_stamp" > "$stamp_file"
 
     if [ "$missing" -gt 0 ]; then
         log "Corpus: generated ${missing} new bodies in ${corpus_dir}"
     fi
     CORPUS_DIR_RESOLVED="$corpus_dir"
+}
+
+# A single digest over the exact bodies this invocation will use. Two runs
+# reporting the same digest built from identical input; two runs reporting
+# different digests are not comparable however matched their configs look.
+corpus_digest() {
+    local i files=""
+    for i in $(seq 1 "$COUNT"); do
+        files="${files} $(corpus_file "$i")"
+    done
+    # shellcheck disable=SC2086 # deliberate word splitting of the file list
+    if command -v sha256sum >/dev/null 2>&1; then
+        cat $files | sha256sum | cut -c1-16
+    elif command -v shasum >/dev/null 2>&1; then
+        cat $files | shasum -a 256 | cut -c1-16
+    else
+        echo "unavailable"
+    fi
 }
 
 corpus_file() {
@@ -547,7 +610,7 @@ main() {
             ;;
     esac
 
-    log_success "Generated ${COUNT} pages for ${SSG} (${SCENARIO})"
+    log_success "Generated ${COUNT} pages for ${SSG} (${SCENARIO}) — corpus $(corpus_digest)"
 }
 
 main "$@"

@@ -78,7 +78,7 @@ description = "Static Site Generator Build Performance Benchmark"
         <th data-col="ssg">SSG</th>
         <th data-col="scenario">Scenario</th>
         <th data-col="page_count" class="num">Pages</th>
-        <th data-col="avg_time_ms" class="num">Med (ms)</th>
+        <th data-col="median_time_ms" class="num">Median (ms)</th>
         <th data-col="min_time_ms" class="num">Min (ms)</th>
         <th data-col="max_time_ms" class="num">Max (ms)</th>
       </tr></thead>

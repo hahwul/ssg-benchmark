@@ -163,9 +163,18 @@ docker-compose --profile benchmark up benchmark-runner
 | `SSGS` | all supported | Space-separated list of SSGs to test |
 | `SEED` | `42` | Content generation seed (determinism) |
 | `USE_DOCKER` | `true` | Use Docker containers for isolation |
-| `DOCKER_CPUS` | `4` | CPU limit per benchmark container |
-| `DOCKER_MEMORY` | `4g` | Memory limit per benchmark container |
+| `DOCKER_CPUS` | `4` | CPU limit per container (clamped to the host's CPU count) |
+| `DOCKER_MEMORY` | `4g` | Memory limit per container (swap disabled) |
+| `DOCKER_CPUSET` | – | Optional CPU pinning, e.g. `0-3` |
+| `BUILD_NETWORK` | `none` | Network for timed builds; `bridge` only for debugging |
+| `EXEC_ORDER` | `interleaved` | `interleaved` round-robins iterations across SSGs; `sequential` batches them |
+| `VERIFY_OUTPUT` | `true` | Check that each scenario's features reached the HTML |
+| `STRICT_VERIFY` | `false` | Fail the run when a feature check fails |
+| `STRICT_PARITY` | `false` | Fail the run when the output-parity guard fires |
 | `VERBOSE` | `false` | Enable verbose output |
+
+SSG versions are **not** configured here — they are pinned in
+[`docker/versions.env`](docker/versions.env) and passed to every image build.
 
 ### Example Configurations
 
@@ -191,9 +200,12 @@ USE_DOCKER=false make benchmark
 ```
 ssg-benchmark/
 ├── docker/                    # Dockerfiles for each SSG
+│   └── versions.env           # Pinned SSG versions (single source of truth)
 ├── scripts/                   # Benchmark scripts
 │   ├── benchmark.sh           # Main benchmark runner (v2 methodology)
 │   ├── generate-content.sh    # Deterministic content generator (seeded corpus)
+│   ├── verify-output.py       # Asserts each scenario's features reached the HTML
+│   ├── compare-runs.py        # Delta table between the two most recent runs
 │   ├── generate-site.sh       # Dashboard data.json generator
 │   └── report.sh              # Report generator
 ├── sites/                     # Base site templates (minimal scenario)
@@ -205,8 +217,11 @@ ssg-benchmark/
 ├── results/                   # Benchmark results (timestamped)
 │   └── YYYYMMDD_HHMMSS/
 │       ├── results.csv        # per-iteration data
-│       ├── summary.md         # medians + output parity check
-│       └── config.json        # run settings for reproducibility
+│       ├── summary.md         # medians, parity, feature verification, incidents
+│       ├── config.json        # run settings + corpus digest for reproducibility
+│       ├── versions.json      # pinned vs. measured SSG versions
+│       ├── parity.json        # machine-readable output-parity verdict
+│       └── verify_*.json      # per-SSG scenario feature checks
 ├── METHODOLOGY.md             # Measurement methodology & known deviations
 ├── docker-compose.yml
 ├── Makefile
@@ -218,21 +233,29 @@ ssg-benchmark/
 ### CSV Output (`results.csv`)
 
 ```csv
-ssg,scenario,page_count,iteration,build_time_ms,peak_memory_kb,output_files,status
-hugo,blog,100,1,85,37812,123,success
-zola,blog,100,1,66,23244,124,success
+ssg,scenario,page_count,iteration,build_time_ms,peak_memory_kb,output_files,status,post_files
+hugo,blog,100,1,85,37812,123,success,100
+zola,blog,100,1,66,23244,124,success,100
 ...
 ```
+
+`status` is `success`, `failed`, `undercount` (fewer post pages rendered than
+the corpus contained) or `oom` (killed at the memory limit).
 
 ### Summary Report (`summary.md`)
 
 The benchmark generates a markdown summary with:
+- The toolchain versions actually measured
 - Median/min/max build times per scenario
 - Peak memory statistics
 - Output HTML counts and the cross-SSG parity check
+- Scenario feature verification (did every SSG really do the work?)
+- Resource-limit incidents (OOM kills, builds near the memory cap)
 
 Each run directory also contains `config.json` with every knob used for the
-run (seed, iterations, Docker limits, host info) for reproducibility.
+run (seed, corpus digest, iterations, effective Docker limits, host info) for
+reproducibility. See [METHODOLOGY.md](METHODOLOGY.md) for what each guard does
+and why.
 
 ## Adding a New SSG
 

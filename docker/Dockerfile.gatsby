@@ -1,17 +1,23 @@
-FROM node:20-slim
+ARG NODE_IMAGE=node:22-bookworm-slim
+FROM ${NODE_IMAGE}
 
 LABEL maintainer="SSG Benchmark"
 LABEL description="Gatsby SSG Benchmark Environment"
 
+# Keep in sync with docker/versions.env. The gatsby runtime itself is pinned
+# exactly in sites/gatsby/package.json.
+ARG GATSBY_CLI_VERSION=5.16.0
+
 # Install dependencies
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     bash \
     coreutils \
     git \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Gatsby CLI globally
-RUN npm install -g gatsby-cli
+RUN npm install -g "gatsby-cli@${GATSBY_CLI_VERSION}" \
+    && npm cache clean --force
 
 # Set working directory
 WORKDIR /site

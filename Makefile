@@ -79,13 +79,16 @@ RESULTS_DIR := results
 # Docker image prefix
 DOCKER_PREFIX := ssg-benchmark
 
+# Pinned toolchain versions, passed to every image build (see docker/versions.env)
+DOCKER_BUILD_ARGS := $(shell sed -e 's/#.*//' -e '/^[[:space:]]*$$/d' $(DOCKER_DIR)/versions.env 2>/dev/null | sed 's/^/--build-arg /' | tr '\n' ' ')
+
 # Build all Docker images
 docker-build:
 	@echo "Building Docker images for all SSGs..."
 	@for ssg in $(SSGS); do \
 		if [ -f "$(DOCKER_DIR)/Dockerfile.$$ssg" ]; then \
 			echo "Building image for $$ssg..."; \
-			docker build -t $(DOCKER_PREFIX)-$$ssg -f $(DOCKER_DIR)/Dockerfile.$$ssg . || true; \
+			docker build $(DOCKER_BUILD_ARGS) -t $(DOCKER_PREFIX)-$$ssg -f $(DOCKER_DIR)/Dockerfile.$$ssg . || true; \
 		fi \
 	done
 	@echo "Docker images built successfully!"
