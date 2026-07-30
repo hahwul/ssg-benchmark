@@ -13,6 +13,8 @@
 #     resources, ...) are removed between iterations: every build is cold.
 #   - Output HTML files are counted per iteration; the summary flags SSGs
 #     whose counts diverge (workload-parity guard).
+#   - Finished builds are inspected to confirm the scenario's features really
+#     landed in the HTML (highlighting, tags, feed, pagination, sidebar).
 #   - Content is deterministic (SEED) and byte-identical across SSGs.
 #   - Timed builds run with --network=none and telemetry disabled, so no SSG
 #     pays a variable network tax. Dependencies are resolved beforehand.
@@ -76,6 +78,10 @@ EXEC_ORDER="${EXEC_ORDER:-interleaved}"
 # where the scheduler's choice can differ by more than the SSGs do.
 DOCKER_CPUSET="${DOCKER_CPUSET:-}"
 MEMORY_PRESSURE_WARNINGS=""
+# Verify after building that the scenario's features are actually present in
+# the output. Set STRICT_VERIFY=true to fail the run when they are not.
+VERIFY_OUTPUT="${VERIFY_OUTPUT:-true}"
+STRICT_VERIFY="${STRICT_VERIFY:-false}"
 
 usage() {
     echo "Usage: $0 [OPTIONS]"
@@ -95,7 +101,8 @@ usage() {
     echo "  DOCKER_CPUS (default 4, clamped to host CPUs), DOCKER_MEMORY (default 4g),"
     echo "  DOCKER_CPUSET (optional CPU pinning, e.g. 0-3),"
     echo "  BUILD_NETWORK (default none — timed builds are network-isolated),"
-    echo "  EXEC_ORDER (interleaved | sequential, default interleaved)"
+    echo "  EXEC_ORDER (interleaved | sequential, default interleaved),"
+    echo "  VERIFY_OUTPUT (default true), STRICT_VERIFY (default false)"
     echo ""
     echo "Examples:"
     echo "  $0 -s hugo,zola -p 100,1000 -i 5"
@@ -479,6 +486,48 @@ clean_build_artifacts() {
         2>/dev/null || true
 }
 
+# Confirms the finished build actually contains the scenario's features
+# (highlighting, tag pages, feed, pagination, sidebar, ...). See
+# scripts/verify-output.py for why counting output files is not enough.
+VERIFY_FAILURES=""
+
+verify_scenario_features() {
+    local ssg=$1 site_dir=$2 scenario=$3 page_count=$4
+    local out_dir report failed
+
+    [ "$VERIFY_OUTPUT" = "true" ] || return 0
+    if ! command -v python3 &>/dev/null; then
+        [ -n "$VERIFY_SKIPPED_WARNED" ] || {
+            log_warn "python3 not found — scenario feature verification skipped."
+            VERIFY_SKIPPED_WARNED=1
+        }
+        return 0
+    fi
+
+    out_dir="${site_dir}/$(output_dir_for "$ssg")"
+    report="${BENCHMARK_RESULTS_DIR}/verify_${ssg}_${scenario}_${page_count}.json"
+
+    python3 "${SCRIPT_DIR}/verify-output.py" \
+        --ssg "$ssg" --scenario "$scenario" \
+        --output-dir "$out_dir" --pages "$page_count" > "$report" 2>/dev/null
+
+    failed=$(python3 -c '
+import json, sys
+try:
+    print(" ".join(json.load(open(sys.argv[1]))["failed"]))
+except Exception:
+    print("report-unreadable")
+' "$report")
+
+    if [ -n "$failed" ]; then
+        log_warn "  ${ssg} (${scenario}) failed feature checks: ${failed}"
+        VERIFY_FAILURES="${VERIFY_FAILURES}${ssg}|${scenario}|${page_count}|${failed}
+"
+    elif [ "$VERBOSE" = "true" ]; then
+        log "  ${ssg} (${scenario}) passed all feature checks"
+    fi
+}
+
 count_output_html() {
     local site_dir=$1 ssg=$2 out_dir
     out_dir="${site_dir}/$(output_dir_for "$ssg")"
@@ -790,6 +839,7 @@ run_group() {
     done
 
     for ((i = 0; i < n; i++)); do
+        verify_scenario_features "${ssgs[$i]}" "${dirs[$i]}" "$scenario" "$page_count"
         rm -rf "${dirs[$i]}"
     done
     BENCHMARKED_CELLS=$((BENCHMARKED_CELLS + 1))
@@ -821,6 +871,7 @@ run_group_sequential() {
             record_iteration "$ssg" "$dir" "$scenario" "$page_count" "$iteration"
         done
 
+        verify_scenario_features "$ssg" "$dir" "$scenario" "$page_count"
         rm -rf "$dir"
         BENCHMARKED_CELLS=$((BENCHMARKED_CELLS + 1))
     done
@@ -884,6 +935,7 @@ write_run_metadata() {
   "docker_swap": "disabled",
   "build_network": "${BUILD_NETWORK}",
   "exec_order": "${EXEC_ORDER}",
+  "verify_output": "${VERIFY_OUTPUT}",
   "host": "$(uname -sm)",
   "host_cpus": "${HOST_CPUS}",
   "docker_version": "${docker_version}",
@@ -989,6 +1041,35 @@ generate_summary() {
         log_warn "Output parity check found ${parity_warnings} mismatch(es) — see ${SUMMARY_FILE}"
     fi
 
+    # Scenario feature verification: did each SSG actually do the work the
+    # scenario claims it did?
+    if [ "$VERIFY_OUTPUT" = "true" ]; then
+        {
+            echo ""
+            echo "## Scenario feature verification"
+            echo ""
+            echo "Confirms the features each scenario promises are present in the emitted"
+            echo "HTML — highlighting, tag pages, feed, pagination, sidebar. An SSG that"
+            echo "silently skips one of these is doing less work than its rivals, which the"
+            echo "output-count parity check cannot detect. Per-SSG reports:"
+            echo "\`verify_<ssg>_<scenario>_<pages>.json\`."
+            echo ""
+            if [ -n "$VERIFY_FAILURES" ]; then
+                echo "| SSG | Scenario | Pages | Failed checks |"
+                echo "|-----|----------|-------|---------------|"
+                printf '%s' "$VERIFY_FAILURES" | while IFS='|' read -r v_ssg v_sc v_pc v_failed; do
+                    [ -n "$v_ssg" ] || continue
+                    echo "| ${v_ssg} | ${v_sc} | ${v_pc} | ${v_failed} |"
+                done
+                echo ""
+                echo "**Timings involving these SSGs are not comparable** until the cause is"
+                echo "fixed: they measure a smaller workload."
+            else
+                echo "All verified SSGs produced every feature their scenario requires."
+            fi
+        } >> "$SUMMARY_FILE"
+    fi
+
     # Resource-limit incidents: builds that hit the memory cap are not
     # comparable with builds that had headroom, even when they "succeeded".
     local oom_rows
@@ -1045,6 +1126,11 @@ main() {
     log_success "Benchmark complete!"
     log "Results saved to: ${BENCHMARK_RESULTS_DIR}"
 
+    if [ -n "$VERIFY_FAILURES" ] && [ "$STRICT_VERIFY" = "true" ]; then
+        log_error "STRICT_VERIFY: scenario feature checks failed — see ${SUMMARY_FILE}"
+        EXIT_CODE=1
+    fi
+
     echo ""
     echo "=========================================="
     echo "         BENCHMARK RESULTS SUMMARY"
@@ -1052,6 +1138,7 @@ main() {
     cat "$SUMMARY_FILE"
 }
 
+EXIT_CODE=0
 main "$@"
 
-exit 0
+exit "$EXIT_CODE"
