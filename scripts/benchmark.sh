@@ -162,6 +162,27 @@ output_dir_for() {
     esac
 }
 
+# What to run inside the SSG's own image to learn which build of it we are
+# about to measure. Kept tolerant: a probe that fails records "unknown" rather
+# than aborting the run.
+version_cmd_for() {
+    case $1 in
+        hugo)       echo "hugo version" ;;
+        zola)       echo "zola --version" ;;
+        jekyll)     echo "jekyll --version" ;;
+        blades)     echo "blades --version" ;;
+        hwaro)      echo "hwaro --version" ;;
+        eleventy)   echo "eleventy --version" ;;
+        pelican)    echo "pelican --version" ;;
+        hexo)       echo "hexo version" ;;
+        gatsby)     echo "gatsby --version" ;;
+        astro)      echo "astro --version" ;;
+        # No global CLI: the pinned version lives in the site's package.json.
+        docusaurus) echo "node -e \"process.stdout.write(require('/probe/package.json').dependencies['@docusaurus/core'])\"" ;;
+        *)          echo "$1 --version" ;;
+    esac
+}
+
 build_cmd_for() {
     case $1 in
         hugo) echo "hugo --noBuildLock" ;;
@@ -232,6 +253,104 @@ build_docker_images() {
 
 is_docker_image_available() {
     echo "$DOCKER_IMAGES_AVAILABLE" | grep -qw "$1"
+}
+
+# =============================================================================
+# Toolchain provenance
+# =============================================================================
+# A benchmark number is meaningless without the version it describes. Probe
+# each image once, up front, and write the answers next to the results so a
+# run stays interpretable years later — and so a mispinned image is visible
+# instead of silently changing the comparison.
+
+VERSIONS_FILE=""
+
+# Collapse a probe's output to a single tidy line.
+first_line() {
+    tr -d '\r' | grep -v '^[[:space:]]*$' | head -1 | cut -c1-200 \
+        | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e 's/"/\\"/g'
+}
+
+probe_in_image() {
+    local ssg=$1 cmd=$2 out
+    out=$(docker run --rm \
+            -v "${SITES_DIR}/${ssg}:/probe:ro" \
+            "ssg-benchmark-${ssg}" sh -c "$cmd" 2>/dev/null | first_line)
+    [ -n "$out" ] || out="unknown"
+    echo "$out"
+}
+
+record_toolchain_versions() {
+    VERSIONS_FILE="${BENCHMARK_RESULTS_DIR}/versions.json"
+    log "Recording toolchain versions..."
+
+    {
+        echo '{'
+        echo '  "note": "Versions actually present in the images/host used for this run.",'
+        echo '  "pinned": {'
+        if [ -f "$VERSIONS_ENV" ]; then
+            sed -e 's/#.*//' -e '/^[[:space:]]*$/d' "$VERSIONS_ENV" \
+                | awk -F'=' '{ printf "    \"%s\": \"%s\",\n", $1, $2 }' \
+                | sed '$ s/,$//'
+        fi
+        echo '  },'
+        echo '  "measured": {'
+    } > "$VERSIONS_FILE"
+
+    local first=true ssg ver os runtime
+    for ssg in $SSGS; do
+        if [ "$USE_DOCKER" = "true" ] && is_docker_image_available "$ssg"; then
+            ver=$(probe_in_image "$ssg" "$(version_cmd_for "$ssg")")
+            os=$(probe_in_image "$ssg" '. /etc/os-release 2>/dev/null && echo "$PRETTY_NAME"')
+            runtime=$(probe_in_image "$ssg" 'node --version 2>/dev/null || ruby --version 2>/dev/null || python3 --version 2>/dev/null || echo native')
+        elif [ "$USE_DOCKER" != "true" ]; then
+            ver=$(sh -c "$(version_cmd_for "$ssg")" 2>/dev/null | first_line)
+            [ -n "$ver" ] || ver="unknown"
+            os=$(uname -sr)
+            runtime="local"
+        else
+            continue
+        fi
+
+        [ "$first" = true ] && first=false || echo ',' >> "$VERSIONS_FILE"
+        printf '    "%s": {"version": "%s", "base_os": "%s", "runtime": "%s"}' \
+            "$ssg" "$ver" "$os" "$runtime" >> "$VERSIONS_FILE"
+        log "  ${ssg}: ${ver}"
+    done
+
+    {
+        echo ''
+        echo '  }'
+        echo '}'
+    } >> "$VERSIONS_FILE"
+
+    log_success "Toolchain versions saved to: ${VERSIONS_FILE}"
+}
+
+# Renders the measured versions as a markdown table for summary.md.
+versions_table() {
+    [ -n "$VERSIONS_FILE" ] && [ -f "$VERSIONS_FILE" ] || return 0
+    python3 - "$VERSIONS_FILE" <<'PY' 2>/dev/null || true
+import json, sys
+try:
+    data = json.load(open(sys.argv[1]))
+except Exception:
+    sys.exit(0)
+measured = data.get("measured") or {}
+if not measured:
+    sys.exit(0)
+print("## Toolchain versions")
+print()
+print("Exactly what was measured. Timings from runs with different versions here")
+print("are not comparable, however similar the methodology.")
+print()
+print("| SSG | Version | Base image OS | Runtime |")
+print("|-----|---------|---------------|---------|")
+for ssg, info in sorted(measured.items()):
+    print("| {} | {} | {} | {} |".format(
+        ssg, info.get("version", "?"), info.get("base_os", "?"), info.get("runtime", "?")))
+print()
+PY
 }
 
 # =============================================================================
@@ -516,9 +635,21 @@ write_run_metadata() {
   "docker_cpus": "${DOCKER_CPUS}",
   "docker_memory": "${DOCKER_MEMORY}",
   "host": "$(uname -sm)",
-  "docker_version": "${docker_version}"
+  "host_cpus": "$(host_cpu_count)",
+  "docker_version": "${docker_version}",
+  "toolchain_versions": "versions.json"
 }
 EOF
+}
+
+host_cpu_count() {
+    if command -v nproc &>/dev/null; then
+        nproc
+    elif [ "$(uname)" = "Darwin" ]; then
+        sysctl -n hw.ncpu 2>/dev/null || echo unknown
+    else
+        echo unknown
+    fi
 }
 
 # median of newline-separated numbers on stdin
@@ -542,6 +673,7 @@ generate_summary() {
         echo "**Iterations:** ${ITERATIONS} (+${WARMUP} warmup, cold builds, median reported)"
         echo "**Seed:** ${SEED} | **Docker:** cpus=${DOCKER_CPUS} mem=${DOCKER_MEMORY}"
         echo ""
+        versions_table
     } > "$SUMMARY_FILE"
 
     for scenario in $SCENARIOS; do
@@ -635,6 +767,7 @@ main() {
         build_docker_images
     fi
 
+    record_toolchain_versions
     write_run_metadata
     run_benchmarks
     generate_summary
