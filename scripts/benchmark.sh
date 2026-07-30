@@ -466,6 +466,42 @@ assemble_site() {
         --output "$target_dir"
 }
 
+# Digest of the exact markdown bodies every SSG was fed. Recorded per run so
+# two result sets can be checked for identical input rather than merely
+# identical settings.
+CORPUS_DIGESTS=""
+
+record_corpus_digest() {
+    local scenario=$1 page_count=$2 class dir digest
+    case $scenario in
+        blog|heavy) class="code" ;;
+        *) class="plain" ;;
+    esac
+    dir="${PROJECT_DIR}/.corpus/${class}"
+    [ -d "$dir" ] || return 0
+
+    digest=$(python3 - "$dir" "$page_count" <<'PY' 2>/dev/null
+import hashlib, sys, os
+d, n = sys.argv[1], int(sys.argv[2])
+h = hashlib.sha256()
+for i in range(1, n + 1):
+    p = os.path.join(d, "%05d.md" % i)
+    try:
+        with open(p, "rb") as fh:
+            h.update(fh.read())
+    except OSError:
+        print("incomplete")
+        raise SystemExit
+print(h.hexdigest()[:16])
+PY
+)
+    [ -n "$digest" ] || digest="unavailable"
+    case "$CORPUS_DIGESTS" in
+        *"${scenario}@${page_count}="*) return 0 ;;
+    esac
+    CORPUS_DIGESTS="${CORPUS_DIGESTS}${scenario}@${page_count}=${digest} "
+}
+
 # Remove build outputs AND caches so every iteration is a cold build
 clean_build_artifacts() {
     local site_dir=$1
@@ -814,6 +850,7 @@ run_group() {
     local dirs=($group_dirs)
     n=${#ssgs[@]}
     [ "$n" -gt 0 ] || { log_warn "  No SSGs eligible for ${scenario} @ ${page_count}p"; return 0; }
+    record_corpus_digest "$scenario" "$page_count"
 
     # Warmups: warm OS page cache / JIT, results discarded.
     # (BSD seq counts down for "seq 1 0", so guard explicitly.)
@@ -859,6 +896,7 @@ run_group_sequential() {
         assemble_site "$ssg" "$scenario" "$page_count" "$dir"
         write_bench_script "$dir" "$(build_cmd_for "$ssg")"
         prepare_dependencies "$ssg" "$dir" "${ssg}_${scenario}_${page_count}"
+        record_corpus_digest "$scenario" "$page_count"
 
         w=1
         while [ "$w" -le "$WARMUP" ]; do
@@ -927,6 +965,7 @@ write_run_metadata() {
   "iterations": ${ITERATIONS},
   "warmup": ${WARMUP},
   "seed": ${SEED},
+  "corpus_digests": "$(echo $CORPUS_DIGESTS)",
   "use_docker": "${USE_DOCKER}",
   "docker_cpus_requested": "${DOCKER_CPUS_REQUESTED}",
   "docker_cpus_effective": "${DOCKER_CPUS}",
@@ -965,6 +1004,7 @@ generate_summary() {
         echo "**Iterations:** ${ITERATIONS} (+${WARMUP} warmup, cold builds, median reported)"
         echo "**Execution order:** ${EXEC_ORDER} | **Build network:** ${BUILD_NETWORK}"
         echo "**Seed:** ${SEED} | **Docker:** cpus=${DOCKER_CPUS} mem=${DOCKER_MEMORY}"
+        echo "**Corpus digest:** \`$(echo $CORPUS_DIGESTS)\` (same digest = same input bytes)"
         echo ""
         versions_table
     } > "$SUMMARY_FILE"
