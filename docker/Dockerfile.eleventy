@@ -1,17 +1,28 @@
-FROM node:20-slim
+# All Node-based SSGs share one NODE_IMAGE. They used to be split across
+# node:20-slim and node:22-slim, which handed whichever SSG sat on the newer
+# V8 a free advantage that had nothing to do with the generator itself.
+ARG NODE_IMAGE=node:22-bookworm-slim
+FROM ${NODE_IMAGE}
 
 LABEL maintainer="SSG Benchmark"
 LABEL description="Eleventy SSG Benchmark Environment"
 
+# Keep in sync with docker/versions.env.
+ARG ELEVENTY_VERSION=3.1.6
+ARG ELEVENTY_HIGHLIGHT_VERSION=5.0.2
+
 # Install dependencies
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     bash \
     coreutils \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Eleventy globally (+ syntax highlighting plugin for the heavy
-# scenario; NODE_PATH lets site configs require() globally installed modules)
-RUN npm install -g @11ty/eleventy @11ty/eleventy-plugin-syntaxhighlight
+# Install Eleventy globally (+ syntax highlighting plugin for the blog/heavy
+# scenarios; NODE_PATH lets site configs require() globally installed modules)
+RUN npm install -g \
+        "@11ty/eleventy@${ELEVENTY_VERSION}" \
+        "@11ty/eleventy-plugin-syntaxhighlight@${ELEVENTY_HIGHLIGHT_VERSION}" \
+    && npm cache clean --force
 ENV NODE_PATH=/usr/local/lib/node_modules
 
 # Set working directory

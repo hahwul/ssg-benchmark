@@ -1,16 +1,34 @@
-FROM ruby:3.2-slim
+ARG RUBY_IMAGE=ruby:3.2-slim-bookworm
+FROM ${RUBY_IMAGE}
 
 LABEL maintainer="SSG Benchmark"
 LABEL description="Jekyll SSG Benchmark Environment"
 
+# Keep in sync with docker/versions.env. The site Gemfiles pin the same
+# versions, so `bundle exec` resolves to exactly what is baked in here and
+# never reaches the network at build time.
+ARG JEKYLL_VERSION=4.4.1
+ARG BUNDLER_VERSION=2.7.2
+ARG WEBRICK_VERSION=1.9.2
+ARG JEKYLL_FEED_VERSION=0.17.0
+ARG JEKYLL_PAGINATE_VERSION=1.1.0
+ARG JEKYLL_ARCHIVES_VERSION=2.3.0
+
 # Install dependencies
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Jekyll and Bundler (+ plugins used by the blog/heavy scenarios)
-RUN gem install jekyll bundler webrick jekyll-feed jekyll-paginate jekyll-archives
+# Install Jekyll and Bundler (+ the plugins used by the blog/heavy scenarios)
+RUN gem install --no-document \
+        bundler:"${BUNDLER_VERSION}" \
+        jekyll:"${JEKYLL_VERSION}" \
+        webrick:"${WEBRICK_VERSION}" \
+        jekyll-feed:"${JEKYLL_FEED_VERSION}" \
+        jekyll-paginate:"${JEKYLL_PAGINATE_VERSION}" \
+        jekyll-archives:"${JEKYLL_ARCHIVES_VERSION}" \
+    && jekyll --version
 
 # Set working directory
 WORKDIR /site

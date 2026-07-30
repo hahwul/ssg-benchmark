@@ -184,18 +184,45 @@ build_cmd_for() {
 # =============================================================================
 
 DOCKER_IMAGES_AVAILABLE=""
+VERSIONS_ENV="${DOCKER_DIR}/versions.env"
+
+# Every toolchain version lives in docker/versions.env and is passed to every
+# image as a --build-arg. Dockerfiles carry the same values as ARG defaults, so
+# a direct `docker build` still gets pinned versions; this just keeps one file
+# authoritative.
+docker_build_args() {
+    [ -f "$VERSIONS_ENV" ] || return 0
+    while IFS= read -r entry; do
+        case "$entry" in
+            ''|\#*) continue ;;
+            *=*) printf ' --build-arg %s' "$entry" ;;
+        esac
+    done < "$VERSIONS_ENV"
+}
 
 build_docker_images() {
+    local build_args
+    build_args=$(docker_build_args)
+
+    if [ -f "$VERSIONS_ENV" ]; then
+        log "Using pinned toolchain versions from ${VERSIONS_ENV}"
+    else
+        log_warn "${VERSIONS_ENV} is missing — images will fall back to Dockerfile ARG defaults"
+    fi
+
     log "Building Docker images..."
     for ssg in $SSGS; do
         dockerfile="${DOCKER_DIR}/Dockerfile.${ssg}"
         if [ -f "$dockerfile" ]; then
             log "Building image for ${ssg}..."
-            if docker build -t "ssg-benchmark-${ssg}" -f "$dockerfile" "$PROJECT_DIR" > "${RESULTS_DIR}/docker_build_${ssg}.log" 2>&1; then
+            # shellcheck disable=SC2086 # build_args is a deliberately split arg list
+            if docker build $build_args -t "ssg-benchmark-${ssg}" -f "$dockerfile" "$PROJECT_DIR" \
+                > "${BENCHMARK_RESULTS_DIR}/docker_build_${ssg}.log" 2>&1; then
                 log_success "Built image: ssg-benchmark-${ssg}"
                 DOCKER_IMAGES_AVAILABLE="${DOCKER_IMAGES_AVAILABLE} ${ssg}"
             else
                 log_warn "Failed to build image for ${ssg}, will try local binary..."
+                log_warn "  see ${BENCHMARK_RESULTS_DIR}/docker_build_${ssg}.log"
             fi
         else
             log_warn "No Dockerfile found for ${ssg} at ${dockerfile}"

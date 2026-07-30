@@ -1,16 +1,44 @@
-FROM alpine:3.19
+# Hugo benchmark image.
+#
+# Uses the official upstream release tarball on Debian rather than Alpine's
+# `apk add hugo`. Two reasons: the Alpine package lags upstream by years (it
+# shipped Hugo 0.111 while every other SSG in the suite was current), and it is
+# built against musl, whose allocator makes Hugo look slower than the binary
+# people actually run. Every other image in the suite is glibc/Debian.
+ARG DEBIAN_IMAGE=debian:bookworm-slim
+FROM ${DEBIAN_IMAGE}
 
 LABEL maintainer="SSG Benchmark"
 LABEL description="Hugo SSG Benchmark Environment"
 
-# Install dependencies (Alpine doesn't have 'time' package, use busybox time)
-RUN apk add --no-cache \
-    hugo \
-    bash \
-    coreutils
+# Keep in sync with docker/versions.env. Held below 0.146.0 deliberately:
+# 0.146 removed layouts/_default and renamed layouts/partials -> _partials, so
+# bumping past it means migrating sites/hugo/layouts and scenarios/*/hugo/layouts
+# first. The scenario assertions must pass after any such bump.
+ARG HUGO_VERSION=0.145.0
 
-# Set working directory
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        bash \
+        coreutils \
+        ca-certificates \
+        curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && ARCH=$(dpkg --print-architecture) \
+    && case "$ARCH" in \
+        amd64) HUGO_ARCH="linux-amd64" ;; \
+        arm64) HUGO_ARCH="linux-arm64" ;; \
+        *) echo "Unsupported architecture: $ARCH" && exit 1 ;; \
+    esac \
+    # Standard (non-extended) edition: nothing in the benchmark uses Sass, and
+    # the extended build drags in a libsass runtime dependency for nothing.
+    && curl -fsSL "https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/hugo_${HUGO_VERSION}_${HUGO_ARCH}.tar.gz" \
+        -o /tmp/hugo.tar.gz \
+    && tar -xzf /tmp/hugo.tar.gz -C /usr/local/bin hugo \
+    && rm /tmp/hugo.tar.gz \
+    && chmod +x /usr/local/bin/hugo \
+    && hugo version
+
 WORKDIR /site
 
-# Default command (no --minify: minification is not part of the benchmark workload)
+# No --minify: minification is not part of the benchmark workload.
 CMD ["hugo"]

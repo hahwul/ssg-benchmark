@@ -1,12 +1,21 @@
 # Dockerfile for Hwaro SSG
 # https://github.com/hahwul/hwaro
-# Based on official Hwaro Dockerfile
+# Based on the official Hwaro Dockerfile.
+#
+# Hwaro is built from source because it has no prebuilt package feed, but it is
+# built from a *tagged release*, not from main. This benchmark is maintained by
+# hwaro's author; letting hwaro alone track unreleased HEAD while every other
+# SSG is pinned to a published release would put its thumb on the scale.
 
 ##= BUILDER =##
-FROM 84codes/crystal:latest-debian-13 AS builder
+# Keep in sync with docker/versions.env.
+ARG CRYSTAL_IMAGE=84codes/crystal:1.20.3-debian-13
+FROM ${CRYSTAL_IMAGE} AS builder
 
 LABEL maintainer="SSG Benchmark"
 LABEL description="Hwaro SSG benchmark environment"
+
+ARG HWARO_VERSION=v0.18.1
 
 WORKDIR /hwaro
 
@@ -18,14 +27,17 @@ RUN apt-get update && \
     git \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Clone and build hwaro
+# Clone the pinned release and build it.
 # `-Dpreview_mt` matches hwaro's official Dockerfile and release binaries;
 # without it the build runs single-threaded.
-RUN git clone https://github.com/hahwul/hwaro.git . && \
+RUN git clone --depth 1 --branch "${HWARO_VERSION}" https://github.com/hahwul/hwaro.git . && \
+    git rev-parse HEAD > /hwaro/.build-commit && \
     shards install --production && \
     shards build --release --no-debug --production -Dpreview_mt
 
 ##= RUNNER =##
+# Must stay on the same Debian release as the builder: the binary links against
+# the builder's glibc, so a bookworm runner would fail to start a trixie build.
 FROM debian:13-slim
 
 # Set default locale for the environment
@@ -45,6 +57,7 @@ RUN apt-get update && \
 
 # Copy hwaro binary from builder
 COPY --from=builder /hwaro/bin/hwaro /usr/local/bin/hwaro
+COPY --from=builder /hwaro/.build-commit /usr/local/share/hwaro-build-commit
 
 # Set working directory
 WORKDIR /site

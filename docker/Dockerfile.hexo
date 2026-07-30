@@ -1,17 +1,23 @@
-FROM node:20-slim
+ARG NODE_IMAGE=node:22-bookworm-slim
+FROM ${NODE_IMAGE}
 
 LABEL maintainer="SSG Benchmark"
 LABEL description="Hexo SSG Benchmark Environment"
 
+# Keep in sync with docker/versions.env. The hexo runtime itself is pinned
+# exactly in sites/hexo/package.json and the scenario overlays.
+ARG HEXO_CLI_VERSION=4.3.2
+
 # Install dependencies
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     bash \
     coreutils \
     git \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Hexo CLI globally
-RUN npm install -g hexo-cli
+RUN npm install -g "hexo-cli@${HEXO_CLI_VERSION}" \
+    && npm cache clean --force
 
 # Set working directory
 WORKDIR /site
