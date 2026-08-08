@@ -80,7 +80,9 @@ RESULTS_DIR := results
 DOCKER_PREFIX := ssg-benchmark
 
 # Pinned toolchain versions, passed to every image build (see docker/versions.env)
-DOCKER_BUILD_ARGS := $(shell sed -e 's/#.*//' -e '/^[[:space:]]*$$/d' $(DOCKER_DIR)/versions.env 2>/dev/null | sed 's/^/--build-arg /' | tr '\n' ' ')
+# The \# is escaped for make, which would otherwise start a comment there and
+# swallow the rest of the $(shell ...) call.
+DOCKER_BUILD_ARGS := $(shell sed -e 's/\#.*//' -e '/^[[:space:]]*$$/d' $(DOCKER_DIR)/versions.env 2>/dev/null | sed 's/^/--build-arg /' | tr '\n' ' ')
 
 # Build all Docker images
 docker-build:
