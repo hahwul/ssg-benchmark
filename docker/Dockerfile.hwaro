@@ -9,7 +9,7 @@
 
 ##= BUILDER =##
 # Keep in sync with docker/versions.env.
-ARG CRYSTAL_IMAGE=84codes/crystal:1.20.3-debian-13
+ARG CRYSTAL_IMAGE=84codes/crystal:1.21.0-debian-13
 FROM ${CRYSTAL_IMAGE} AS builder
 
 LABEL maintainer="SSG Benchmark"
@@ -27,13 +27,34 @@ RUN apt-get update && \
     git \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Clone the pinned release and build it.
-# `-Dpreview_mt` matches hwaro's official Dockerfile and release binaries;
-# without it the build runs single-threaded.
+# Clone the pinned release and build it the way that release ships.
+#
+# Hwaro changed how it gets its parallelism, and the two eras need opposite
+# build flags — passing the wrong one is not a slow build, it is a hard error
+# or a silently single-threaded one, so the flag is derived from the pinned
+# tag's own source rather than hand-maintained alongside HWARO_VERSION:
+#
+#   <= v0.18.1  parallelism came from `-Dpreview_mt`. Without the flag these
+#               releases run single-threaded (no execution-context resize
+#               exists in their source), which would understate them.
+#   >  v0.18.1  `-Dpreview_mt` was dropped (it is deprecated in Crystal 1.21
+#               and its legacy scheduler can hang at process exit). `src/main.cr`
+#               resizes the default execution context instead, and that API does
+#               not exist under the flag — building with it fails outright with
+#               `undefined constant Fiber::ExecutionContext`.
+#
+# The same cutover is why CRYSTAL_IMAGE must stay >= 1.21: releases after
+# v0.18.1 declare `crystal: ">= 1.21.0"` and reference an API 1.20 lacks.
 RUN git clone --depth 1 --branch "${HWARO_VERSION}" https://github.com/hahwul/hwaro.git . && \
     git rev-parse HEAD > /hwaro/.build-commit && \
     shards install --production && \
-    shards build --release --no-debug --production -Dpreview_mt
+    if grep -q 'Fiber::ExecutionContext' src/main.cr; then \
+        echo "execution contexts: building without -Dpreview_mt" && \
+        shards build --release --no-debug --production; \
+    else \
+        echo "legacy MT: building with -Dpreview_mt" && \
+        shards build --release --no-debug --production -Dpreview_mt; \
+    fi
 
 ##= RUNNER =##
 # Must stay on the same Debian release as the builder: the binary links against
