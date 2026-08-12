@@ -1,0 +1,40 @@
+{
+  "note": "Versions actually present in the images/host used for this run.",
+  "pinned": {
+    "NODE_IMAGE": "node:22-bookworm-slim",
+    "DEBIAN_IMAGE": "debian:bookworm-slim",
+    "RUBY_IMAGE": "ruby:3.2-slim-bookworm",
+    "PYTHON_IMAGE": "python:3.12-slim-bookworm",
+    "RUST_IMAGE": "rust:1.83-slim-bookworm",
+    "CRYSTAL_IMAGE": "84codes/crystal:1.21.0-debian-13",
+    "HUGO_VERSION": "0.145.0",
+    "ZOLA_VERSION": "0.22.1",
+    "BLADES_VERSION": "0.6.0",
+    "HWARO_VERSION": "v0.18.1",
+    "HWARO_MAIN_REF": "main",
+    "JEKYLL_VERSION": "4.4.1",
+    "BUNDLER_VERSION": "2.7.2",
+    "WEBRICK_VERSION": "1.9.2",
+    "JEKYLL_FEED_VERSION": "0.17.0",
+    "JEKYLL_PAGINATE_VERSION": "1.1.0",
+    "JEKYLL_ARCHIVES_VERSION": "2.3.0",
+    "PELICAN_VERSION": "4.12.0",
+    "ELEVENTY_VERSION": "3.1.6",
+    "ELEVENTY_HIGHLIGHT_VERSION": "5.0.2",
+    "HEXO_CLI_VERSION": "4.3.2",
+    "ASTRO_VERSION": "5.18.2",
+    "GATSBY_CLI_VERSION": "5.16.0"
+  },
+  "measured": {
+    "hugo": {"version": "hugo v0.145.0-666444f0a52132f9fec9f71cf25b441cc6a4f355 linux/arm64 BuildDate=2025-02-26T15:41:25Z VendorInfo=gohugoio", "base_os": "Debian GNU/Linux 12 (bookworm)", "runtime": "native"},
+    "zola": {"version": "zola 0.22.1", "base_os": "Debian GNU/Linux 12 (bookworm)", "runtime": "native"},
+    "jekyll": {"version": "jekyll 4.4.1", "base_os": "Debian GNU/Linux 12 (bookworm)", "runtime": "ruby 3.2.11 (2026-03-27 revision 5483bfc1ae) [aarch64-linux]"},
+    "hwaro": {"version": "0.18.1", "base_os": "Debian GNU/Linux 13 (trixie)", "runtime": "native"},
+    "eleventy": {"version": "3.1.6", "base_os": "Debian GNU/Linux 12 (bookworm)", "runtime": "v22.23.2"},
+    "pelican": {"version": "4.12.0", "base_os": "Debian GNU/Linux 12 (bookworm)", "runtime": "Python 3.12.13"},
+    "hexo": {"version": "hexo-cli: 4.3.2", "base_os": "Debian GNU/Linux 12 (bookworm)", "runtime": "v22.23.2"},
+    "gatsby": {"version": "Gatsby CLI version: 5.16.0", "base_os": "Debian GNU/Linux 12 (bookworm)", "runtime": "v22.23.2"},
+    "astro": {"version": "astro  v5.18.2", "base_os": "Debian GNU/Linux 12 (bookworm)", "runtime": "v22.23.2"},
+    "docusaurus": {"version": "3.10.2", "base_os": "Debian GNU/Linux 12 (bookworm)", "runtime": "v22.23.2"}
+  }
+}
