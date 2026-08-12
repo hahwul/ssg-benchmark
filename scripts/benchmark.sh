@@ -93,6 +93,8 @@ usage() {
     echo ""
     echo "Options:"
     echo "  -s, --ssgs LIST          Comma-separated list of SSGs to benchmark"
+    echo "                           (add 'hwaro-main' to also measure hwaro built from"
+    echo "                            its main branch — opt-in, never in the default set)"
     echo "  -p, --pages LIST         Comma-separated list of page counts (default: 1000)"
     echo "  -n, --scenarios LIST     Comma-separated scenarios: minimal,blog,heavy (default: minimal,blog,heavy)"
     echo "  -i, --iterations N       Recorded iterations per benchmark (default: 3)"
@@ -112,6 +114,7 @@ usage() {
     echo "Examples:"
     echo "  $0 -s hugo,zola -p 100,1000 -i 5"
     echo "  $0 -n minimal,blog,heavy -s hugo,zola,hwaro"
+    echo "  $0 -s hwaro,hwaro-main            # released hwaro vs. unreleased main"
 }
 
 log() { echo -e "${BLUE}[INFO]${NC} $1"; }
@@ -226,6 +229,73 @@ resolve_resource_limits() {
 resolve_resource_limits
 
 # =============================================================================
+# SSG variants
+# =============================================================================
+# An SSG id may be "<family>-<variant>": the same generator built from a
+# different source ref. `hwaro-main` is the one that exists today — hwaro built
+# from its main branch, so this repo can measure hwaro's unreleased work
+# without letting the published cross-SSG comparison track HEAD (the reasoning
+# is in docker/Dockerfile.hwaro).
+#
+# A variant shares everything with its family except the image: the same site
+# template, scenario overlay, generated content, build command and output
+# directory. So every "how do I build a site for this SSG?" question resolves
+# the family first, and only image building, the version probe and the results
+# row use the full id — which is what makes the comparison meaningful, since
+# the two rows then differ by hwaro's source and nothing else.
+
+ssg_family() { echo "${1%%-*}"; }
+
+# Read one key out of docker/versions.env (empty when absent).
+versions_env_value() {
+    [ -f "$VERSIONS_ENV" ] || return 0
+    awk -F'=' -v k="$1" '$1 == k { print $2; exit }' "$VERSIONS_ENV"
+}
+
+# Resolve a moving ref to the commit it points at right now. Used only to key
+# the variant image's cache: without it Docker reuses the layer that cloned
+# `main` a week ago, and the run silently measures a stale commit. On failure
+# we return a per-run unique value instead of a constant — a needless rebuild
+# is a cheaper mistake than an unnoticed stale measurement.
+resolve_git_ref_sha() {
+    local repo=$1 ref=$2 sha=""
+    if command -v git &>/dev/null; then
+        sha=$(git ls-remote "$repo" "$ref" 2>/dev/null | awk 'NR == 1 { print $1 }')
+    fi
+    if [ -z "$sha" ]; then
+        log_warn "Could not resolve ${ref} in ${repo}; forcing a fresh clone layer."
+        sha="unresolved-${TIMESTAMP}"
+    fi
+    echo "$sha"
+}
+
+# Build args a variant needs on top of docker/versions.env. Keys named here
+# REPLACE the shared value rather than being appended after it (see
+# docker_build_args), so the command line carries one value per key.
+variant_build_args() {
+    local ref
+    case $1 in
+        hwaro-main)
+            ref="${HWARO_MAIN_REF:-$(versions_env_value HWARO_MAIN_REF)}"
+            ref="${ref:-main}"
+            printf ' --build-arg HWARO_VERSION=%s' "$ref"
+            printf ' --build-arg HWARO_REF_SHA=%s' \
+                "$(resolve_git_ref_sha https://github.com/hahwul/hwaro.git "$ref")"
+            ;;
+    esac
+}
+
+# A variant reuses its family's Dockerfile verbatim — that is the point. A
+# dedicated Dockerfile.hwaro-main would be a copy free to drift, and a drifted
+# compiler or flag would show up as a hwaro performance change.
+dockerfile_for() {
+    local ssg=$1 df
+    df="${DOCKER_DIR}/Dockerfile.${ssg}"
+    [ -f "$df" ] || df="${DOCKER_DIR}/Dockerfile.$(ssg_family "$ssg")"
+    echo "$df"
+}
+
+# =============================================================================
 # Scenario support matrix
 # =============================================================================
 # blog/heavy require native (or image-preinstalled) tag pages, pagination and
@@ -234,7 +304,8 @@ resolve_resource_limits
 # (docusaurus, blades) run the minimal scenario only. See METHODOLOGY.md.
 
 scenario_supported() {
-    local ssg=$1 scenario=$2
+    local ssg scenario=$2
+    ssg=$(ssg_family "$1")
     case $scenario in
         minimal) return 0 ;;
         blog|heavy)
@@ -249,7 +320,7 @@ scenario_supported() {
 
 # Where each SSG writes its build output (relative to the site root)
 output_dir_for() {
-    case $1 in
+    case $(ssg_family "$1") in
         jekyll|eleventy) echo "_site" ;;
         pelican) echo "output" ;;
         astro) echo "dist" ;;
@@ -262,7 +333,18 @@ output_dir_for() {
 # about to measure. Kept tolerant: a probe that fails records "unknown" rather
 # than aborting the run.
 version_cmd_for() {
+    # Variants first: a variant's own --version is the shard version, which on
+    # a branch is just whatever the last release bumped it to — identical to
+    # the release row's string and therefore useless for telling the two runs
+    # apart. The commit is the identifying fact, so report both.
     case $1 in
+        hwaro-main)
+            echo 'echo "$(hwaro --version 2>/dev/null | head -1) [main @ $(cut -c1-12 /usr/local/share/hwaro-build-commit 2>/dev/null)]"'
+            return 0
+            ;;
+    esac
+
+    case $(ssg_family "$1") in
         hugo)       echo "hugo version" ;;
         zola)       echo "zola --version" ;;
         jekyll)     echo "jekyll --version" ;;
@@ -275,12 +357,12 @@ version_cmd_for() {
         astro)      echo "astro --version" ;;
         # No global CLI: the pinned version lives in the site's package.json.
         docusaurus) echo "node -e \"process.stdout.write(require('/probe/package.json').dependencies['@docusaurus/core'])\"" ;;
-        *)          echo "$1 --version" ;;
+        *)          echo "$(ssg_family "$1") --version" ;;
     esac
 }
 
 build_cmd_for() {
-    case $1 in
+    case $(ssg_family "$1") in
         hugo) echo "hugo --noBuildLock" ;;
         zola) echo "zola build" ;;
         jekyll) echo "bundle exec jekyll build" ;;
@@ -292,7 +374,7 @@ build_cmd_for() {
         gatsby) echo "gatsby build" ;;
         astro) echo "npx astro build" ;;
         docusaurus) echo "npx docusaurus build" ;;
-        *) echo "$1 build" ;;
+        *) echo "$(ssg_family "$1") build" ;;
     esac
 }
 
@@ -307,19 +389,32 @@ VERSIONS_ENV="${DOCKER_DIR}/versions.env"
 # image as a --build-arg. Dockerfiles carry the same values as ARG defaults, so
 # a direct `docker build` still gets pinned versions; this just keeps one file
 # authoritative.
+#
+# A variant SSG may override one of those keys (hwaro-main overrides
+# HWARO_VERSION). The override replaces the shared value here rather than being
+# appended after it, so the command line has exactly one value per key and the
+# result does not rest on the docker CLI's last-one-wins behaviour.
 docker_build_args() {
-    [ -f "$VERSIONS_ENV" ] || return 0
+    local overrides entry key
+    overrides=$(variant_build_args "$1")
+    [ -f "$VERSIONS_ENV" ] || { printf '%s' "$overrides"; return 0; }
     while IFS= read -r entry; do
         case "$entry" in
             ''|\#*) continue ;;
-            *=*) printf ' --build-arg %s' "$entry" ;;
+            *=*) ;;
+            *) continue ;;
         esac
+        key=${entry%%=*}
+        case "$overrides " in
+            *" --build-arg ${key}="*) continue ;;
+        esac
+        printf ' --build-arg %s' "$entry"
     done < "$VERSIONS_ENV"
+    printf '%s' "$overrides"
 }
 
 build_docker_images() {
-    local build_args
-    build_args=$(docker_build_args)
+    local build_args dockerfile
 
     if [ -f "$VERSIONS_ENV" ]; then
         log "Using pinned toolchain versions from ${VERSIONS_ENV}"
@@ -329,7 +424,8 @@ build_docker_images() {
 
     log "Building Docker images..."
     for ssg in $SSGS; do
-        dockerfile="${DOCKER_DIR}/Dockerfile.${ssg}"
+        dockerfile=$(dockerfile_for "$ssg")
+        build_args=$(docker_build_args "$ssg")
         if [ -f "$dockerfile" ]; then
             log "Building image for ${ssg}..."
             # shellcheck disable=SC2086 # build_args is a deliberately split arg list
@@ -347,8 +443,15 @@ build_docker_images() {
     done
 }
 
+# Exact-token match, not `grep -w`: a hyphen is a word boundary, so `grep -w
+# hwaro` matches the entry "hwaro-main". A run where the release image failed
+# to build but the main one succeeded would then have every hwaro build sent to
+# the wrong image.
 is_docker_image_available() {
-    echo "$DOCKER_IMAGES_AVAILABLE" | grep -qw "$1"
+    case " ${DOCKER_IMAGES_AVAILABLE} " in
+        *" $1 "*) return 0 ;;
+        *) return 1 ;;
+    esac
 }
 
 # =============================================================================
@@ -370,7 +473,7 @@ first_line() {
 probe_in_image() {
     local ssg=$1 cmd=$2 out
     out=$(docker run --rm \
-            -v "${SITES_DIR}/${ssg}:/probe:ro" \
+            -v "${SITES_DIR}/$(ssg_family "$ssg"):/probe:ro" \
             "ssg-benchmark-${ssg}" sh -c "$cmd" 2>/dev/null | first_line)
     [ -n "$out" ] || out="unknown"
     echo "$out"
@@ -454,7 +557,12 @@ PY
 # =============================================================================
 
 assemble_site() {
-    local ssg=$1 scenario=$2 page_count=$3 target_dir=$4
+    local ssg scenario=$2 page_count=$3 target_dir=$4
+
+    # The family, not the id: a variant must build the identical site from the
+    # identical content, or its numbers describe a different workload rather
+    # than a different build of the same generator.
+    ssg=$(ssg_family "$1")
 
     if [ -d "${SITES_DIR}/${ssg}" ]; then
         cp -a "${SITES_DIR}/${ssg}/." "$target_dir/" 2>/dev/null || true
@@ -761,10 +869,15 @@ run_one_build() {
 }
 
 is_ssg_runnable() {
-    local ssg=$1
+    local ssg=$1 family
     if [ "$USE_DOCKER" = "true" ] && is_docker_image_available "$ssg"; then
         return 0
     fi
+    # Local mode has no way to hold two builds of one generator on $PATH, so a
+    # variant is Docker-only; falling back to the family's local binary would
+    # silently measure the release and label it as main.
+    family=$(ssg_family "$ssg")
+    [ "$family" = "$ssg" ] || return 1
     if command -v "$ssg" &> /dev/null; then
         return 0
     fi
@@ -783,7 +896,7 @@ prepare_dependencies() {
 
     [ "$USE_DOCKER" = "true" ] || return 0
 
-    case $ssg in
+    case $(ssg_family "$ssg") in
         gatsby|astro|docusaurus|hexo)
             [ -f "${site_dir}/package.json" ] || return 0
             log "    Installing npm dependencies (outside timing)..."

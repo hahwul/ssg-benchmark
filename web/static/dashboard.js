@@ -9,7 +9,12 @@ const SSG_META = {
   gatsby:     { color: '#663399', lang: 'Node.js', desc: 'A React-based open source framework for creating websites' },
   astro:      { color: '#FF5D01', lang: 'Node.js', desc: 'The web framework for content-driven websites' },
   blades:     { color: '#E44D26', lang: 'Rust',    desc: 'A blazing fast dead simple static site generator' },
-  docusaurus: { color: '#2E8555', lang: 'Node.js', desc: 'Build optimized websites quickly with React' }
+  docusaurus: { color: '#2E8555', lang: 'Node.js', desc: 'Build optimized websites quickly with React' },
+  // Opt-in development row, not part of the published cross-SSG comparison:
+  // hwaro built from its main branch, so unreleased work can be measured
+  // against the pinned release without the release row tracking HEAD.
+  // Only appears in runs that explicitly asked for it.
+  'hwaro-main': { color: '#9AA0A6', lang: 'Crystal', desc: 'Hwaro built from main (unreleased, dev comparison only)' }
 };
 
 const SCENARIO_LABELS = {

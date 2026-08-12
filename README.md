@@ -107,6 +107,9 @@ make benchmark-jekyll
 make benchmark-blades
 make benchmark-hwaro
 
+# Released hwaro vs. hwaro built from main (see "Tracking hwaro's own changes")
+make benchmark-hwaro-main
+
 # Clean generated content
 make clean
 
@@ -175,6 +178,30 @@ docker-compose --profile benchmark up benchmark-runner
 
 SSG versions are **not** configured here — they are pinned in
 [`docker/versions.env`](docker/versions.env) and passed to every image build.
+
+### Tracking hwaro's own changes
+
+The cross-SSG comparison pins hwaro to a release, like everything else — the
+benchmark is maintained by hwaro's author, and letting hwaro alone track
+unreleased HEAD would put its thumb on the scale. But "did this month's commits
+make hwaro faster?" is the question this repo exists to answer, and that needs
+a build from `main`.
+
+So it gets its own row rather than redefining the release one. `hwaro-main` is
+hwaro built from its main branch, using the *same* `docker/Dockerfile.hwaro` —
+same Crystal image, same build flags — with only the source ref changed:
+
+```bash
+# Both in one run, so they share the same host conditions
+./scripts/benchmark.sh -s hwaro,hwaro-main -n minimal,blog,heavy
+make benchmark-hwaro-main
+```
+
+The run resolves `main` to its current commit so a cached image layer can't
+serve a stale build, and `versions.json` records the commit each row was built
+from. `hwaro-main` is opt-in — it is in no default SSG set and no published
+run. Point it at another branch with `HWARO_MAIN_REF=my-branch`.
+Details in [METHODOLOGY.md](METHODOLOGY.md#variant-builds-hwaro-main).
 
 ### Example Configurations
 

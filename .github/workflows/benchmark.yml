@@ -71,7 +71,11 @@ jobs:
           SSGS="${{ github.event.inputs.ssgs || env.DEFAULT_SSGS }}"
           missing=""
           for ssg in $SSGS; do
-            [ -f "docker/Dockerfile.${ssg}" ] || missing="${missing} ${ssg}"
+            # A variant ("<family>-<variant>", e.g. hwaro-main) deliberately has
+            # no Dockerfile of its own; it builds from its family's with a
+            # different source ref. See docker/Dockerfile.hwaro.
+            [ -f "docker/Dockerfile.${ssg}" ] && continue
+            [ -f "docker/Dockerfile.${ssg%%-*}" ] || missing="${missing} ${ssg}"
           done
           if [ -n "$missing" ]; then
             echo "::error::No Dockerfile for:${missing}"

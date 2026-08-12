@@ -6,6 +6,17 @@
 # built from a *tagged release*, not from main. This benchmark is maintained by
 # hwaro's author; letting hwaro alone track unreleased HEAD while every other
 # SSG is pinned to a published release would put its thumb on the scale.
+#
+# The benchmark does also measure hwaro's unreleased work, because "did this
+# month's commits make hwaro faster?" is a question this repo exists to answer
+# — it is just a different question from the cross-SSG comparison, and it gets
+# its own SSG id (`hwaro-main`) rather than being folded into the `hwaro` row.
+# That variant builds from THIS Dockerfile, not a copy: same builder image,
+# same shards flags, same runner stage, only HWARO_VERSION differs. A copy
+# would be free to drift, and then a difference in the numbers could be a
+# difference in the build rather than in hwaro. hwaro-main is opt-in (never in
+# the default SSG set) and is not published beside the release row.
+# See METHODOLOGY.md.
 
 ##= BUILDER =##
 # Keep in sync with docker/versions.env.
@@ -15,7 +26,17 @@ FROM ${CRYSTAL_IMAGE} AS builder
 LABEL maintainer="SSG Benchmark"
 LABEL description="Hwaro SSG benchmark environment"
 
+# Any git ref: a tag (the default, and the only thing the published comparison
+# uses) or a branch such as `main` for the hwaro-main variant.
 ARG HWARO_VERSION=v0.18.1
+
+# Cache key for moving refs. A branch's *contents* change without
+# HWARO_VERSION changing, so once `main` had been built the clone layer below
+# would be reused forever and hwaro-main would quietly keep measuring a stale
+# commit while reporting it as today's. benchmark.sh resolves the ref to its
+# current SHA on the host and passes it here purely to key this layer; for a
+# tag the SHA never moves, so release builds still cache exactly as before.
+ARG HWARO_REF_SHA=pinned
 
 WORKDIR /hwaro
 
@@ -47,6 +68,7 @@ RUN apt-get update && \
 # v0.18.1 declare `crystal: ">= 1.21.0"` and reference an API 1.20 lacks.
 RUN git clone --depth 1 --branch "${HWARO_VERSION}" https://github.com/hahwul/hwaro.git . && \
     git rev-parse HEAD > /hwaro/.build-commit && \
+    echo "${HWARO_VERSION} (requested at ${HWARO_REF_SHA})" > /hwaro/.build-ref && \
     shards install --production && \
     if grep -q 'Fiber::ExecutionContext' src/main.cr; then \
         echo "execution contexts: building without -Dpreview_mt" && \
@@ -79,6 +101,7 @@ RUN apt-get update && \
 # Copy hwaro binary from builder
 COPY --from=builder /hwaro/bin/hwaro /usr/local/bin/hwaro
 COPY --from=builder /hwaro/.build-commit /usr/local/share/hwaro-build-commit
+COPY --from=builder /hwaro/.build-ref /usr/local/share/hwaro-build-ref
 
 # Set working directory
 WORKDIR /site

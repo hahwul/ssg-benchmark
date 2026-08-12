@@ -2,7 +2,7 @@
 # Provides convenient commands for running benchmarks
 
 .PHONY: help build benchmark clean docker-build docker-clean \
-        benchmark-hugo benchmark-zola benchmark-jekyll benchmark-blades benchmark-hwaro \
+        benchmark-hugo benchmark-zola benchmark-jekyll benchmark-blades benchmark-hwaro benchmark-hwaro-main \
         benchmark-eleventy benchmark-pelican benchmark-hexo benchmark-gatsby benchmark-astro benchmark-docusaurus \
         generate-content quick-test full-test report install-deps site
 
@@ -27,7 +27,8 @@ help:
 	@echo "  benchmark-zola      Benchmark Zola only"
 	@echo "  benchmark-jekyll    Benchmark Jekyll only"
 	@echo "  benchmark-blades    Benchmark Blades only"
-	@echo "  benchmark-hwaro     Benchmark Hwaro only"
+	@echo "  benchmark-hwaro     Benchmark Hwaro (pinned release) only"
+	@echo "  benchmark-hwaro-main Benchmark released Hwaro against its main branch"
 	@echo "  benchmark-eleventy  Benchmark Eleventy only"
 	@echo "  benchmark-pelican   Benchmark Pelican only"
 	@echo "  benchmark-hexo      Benchmark Hexo only"
@@ -82,16 +83,34 @@ DOCKER_PREFIX := ssg-benchmark
 # Pinned toolchain versions, passed to every image build (see docker/versions.env)
 # The \# is escaped for make, which would otherwise start a comment there and
 # swallow the rest of the $(shell ...) call.
-DOCKER_BUILD_ARGS := $(shell sed -e 's/\#.*//' -e '/^[[:space:]]*$$/d' $(DOCKER_DIR)/versions.env 2>/dev/null | sed 's/^/--build-arg /' | tr '\n' ' ')
+# The --build-arg=K=V form (rather than two words) keeps each argument a single
+# token, so a variant build below can drop one key with a plain substitution.
+DOCKER_BUILD_ARGS := $(shell sed -e 's/\#.*//' -e '/^[[:space:]]*$$/d' $(DOCKER_DIR)/versions.env 2>/dev/null | sed 's/^/--build-arg=/' | tr '\n' ' ')
+
+# The branch the hwaro-main variant builds from (see docker/Dockerfile.hwaro).
+HWARO_MAIN_REF ?= $(shell sed -n 's/^HWARO_MAIN_REF=//p' $(DOCKER_DIR)/versions.env)
 
 # Build all Docker images
+#
+# A variant SSG ("<family>-<variant>", e.g. hwaro-main) has no Dockerfile of its
+# own on purpose — it builds from its family's, with one pinned key replaced, so
+# the two images cannot differ in anything but the source ref. The key is
+# *replaced* rather than appended, so the result does not depend on the docker
+# CLI's last-one-wins rule. --no-cache because the variant's ref moves while its
+# name does not; benchmark.sh does the cheaper thing and keys the layer on the
+# ref's resolved SHA, but this target has no run to hang that resolution on.
 docker-build:
 	@echo "Building Docker images for all SSGs..."
 	@for ssg in $(SSGS); do \
-		if [ -f "$(DOCKER_DIR)/Dockerfile.$$ssg" ]; then \
-			echo "Building image for $$ssg..."; \
-			docker build $(DOCKER_BUILD_ARGS) -t $(DOCKER_PREFIX)-$$ssg -f $(DOCKER_DIR)/Dockerfile.$$ssg . || true; \
-		fi \
+		dockerfile=$(DOCKER_DIR)/Dockerfile.$$ssg; \
+		[ -f "$$dockerfile" ] || dockerfile=$(DOCKER_DIR)/Dockerfile.$${ssg%%-*}; \
+		[ -f "$$dockerfile" ] || continue; \
+		args="$(DOCKER_BUILD_ARGS)"; \
+		case $$ssg in \
+			hwaro-main) args="$$(echo "$$args" | sed 's|--build-arg=HWARO_VERSION=[^ ]*||') --build-arg=HWARO_VERSION=$(HWARO_MAIN_REF) --no-cache" ;; \
+		esac; \
+		echo "Building image for $$ssg..."; \
+		docker build $$args -t $(DOCKER_PREFIX)-$$ssg -f $$dockerfile . || true; \
 	done
 	@echo "Docker images built successfully!"
 
@@ -226,6 +245,19 @@ benchmark-hwaro:
 	SSGS="hwaro" \
 	./$(SCRIPT_DIR)/benchmark.sh
 
+# Released hwaro vs. hwaro built from main, in one interleaved run so host
+# drift is shared between them. Both rows come from docker/Dockerfile.hwaro,
+# so the only difference between them is hwaro's own source.
+benchmark-hwaro-main:
+	@chmod +x $(SCRIPT_DIR)/*.sh
+	USE_DOCKER=$(USE_DOCKER) \
+	PAGE_COUNTS="$(PAGE_COUNTS)" \
+	ITERATIONS=$(ITERATIONS) \
+	SCENARIOS="$(SCENARIOS)" \
+	WARMUP=$(WARMUP) \
+	SSGS="hwaro hwaro-main" \
+	./$(SCRIPT_DIR)/benchmark.sh
+
 benchmark-eleventy:
 	@chmod +x $(SCRIPT_DIR)/*.sh
 	USE_DOCKER=$(USE_DOCKER) \
@@ -291,6 +323,7 @@ generate-content:
 	@echo "Generating test content..."
 	@chmod +x $(SCRIPT_DIR)/*.sh
 	@for ssg in $(SSGS); do \
+		ssg=$${ssg%%-*}; \
 		echo "Generating content for $$ssg..."; \
 		./$(SCRIPT_DIR)/generate-content.sh \
 			--ssg $$ssg \

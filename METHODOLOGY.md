@@ -86,6 +86,45 @@ Each run records what it actually measured in `versions.json` (pinned *and*
 observed versions, base OS, language runtime), rendered into `summary.md` and
 carried into the dashboard's `data.json`.
 
+### Variant builds (`hwaro-main`)
+
+This repo has two jobs. One is the cross-SSG comparison above, where hwaro is
+pinned to a release like everything else. The other is measuring hwaro's own
+development — "did this month's commits make it faster?" — which needs a build
+from `main`, exactly what the pinning above forbids.
+
+Those are separate rows, not a redefinition of the first. An SSG id may be
+`<family>-<variant>`, and `hwaro-main` is hwaro built from its main branch:
+
+```sh
+./scripts/benchmark.sh -s hwaro,hwaro-main       # or: make benchmark-hwaro-main
+```
+
+The variant is constrained so that a difference in its numbers can only be a
+difference in hwaro's source:
+
+- **Same Dockerfile**, not a copy. `hwaro-main` builds from
+  `docker/Dockerfile.hwaro` with `HWARO_VERSION` replaced — same Crystal image,
+  same `shards build` flags, same runner stage. A dedicated
+  `Dockerfile.hwaro-main` would be free to drift, and a drifted compiler flag
+  would read as a hwaro performance change.
+- **Same site, same content.** Templates, scenario overlay, generated corpus,
+  build command and output directory all resolve to the *family*, so both rows
+  do identical work.
+- **Same run.** Benchmark them together and the interleaved execution order
+  puts both through the same host drift, which is the whole point of comparing
+  them.
+- **Not stale.** A branch's contents move while its name does not, so the image
+  layer that clones it would be cached forever. The runner resolves the ref to
+  its current commit (`git ls-remote`) and keys the layer on that; the probe in
+  `versions.json` reports the built commit, not just the shard version — which
+  on `main` is whatever the last release bumped it to and would otherwise be
+  indistinguishable from the release row.
+
+`hwaro-main` is opt-in: it is in no default SSG set, no scheduled workflow and
+no published run. The comparison this repo publishes contains one hwaro, and it
+is the released one.
+
 ## Deterministic content
 
 `scripts/generate-content.sh` generates a seeded corpus (`SEED`, default 42):
@@ -153,6 +192,9 @@ Gatsby/Astro would need bespoke application code for tag pages, pagination
 and feeds (which would benchmark *our* code, not the SSG); Docusaurus cannot
 disable framework pagination; Blades is kept minimal-only. They run in
 `minimal` as cross-checks.
+
+A variant inherits its family's row, so `hwaro-main` supports all three
+scenarios — the point of a variant is that it does identical work.
 
 ## Output parity guard
 

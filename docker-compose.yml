@@ -83,6 +83,28 @@ services:
     mem_limit: 4g
     cpus: 2
 
+  # Hwaro built from its main branch, for measuring unreleased work against the
+  # pinned release above. Same Dockerfile, same builder image, same flags — only
+  # the source ref differs. Behind a profile so it is never part of the default
+  # cross-SSG comparison: `docker compose --profile dev build hwaro-main`.
+  hwaro-main:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.hwaro
+      args:
+        HWARO_VERSION: main
+    image: ssg-benchmark-hwaro-main
+    container_name: ssg-bench-hwaro-main
+    volumes:
+      - ./sites/hwaro:/site:rw
+      - ./results:/results:rw
+    working_dir: /site
+    command: ["hwaro", "build"]
+    mem_limit: 4g
+    cpus: 2
+    profiles:
+      - dev
+
   # Eleventy - A simpler static site generator
   eleventy:
     build:
