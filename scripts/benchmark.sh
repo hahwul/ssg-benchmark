@@ -51,7 +51,7 @@ DOCKER_DIR="${PROJECT_DIR}/docker"
 # Benchmark settings
 DEFAULT_PAGE_COUNTS="1000"
 DEFAULT_ITERATIONS=3
-DEFAULT_SSGS="hugo zola jekyll blades hwaro eleventy pelican hexo gatsby astro docusaurus"
+DEFAULT_SSGS="hugo zola jekyll blades hwaro hwaro-main eleventy pelican hexo gatsby astro docusaurus"
 DEFAULT_SCENARIOS="minimal blog heavy"
 
 PAGE_COUNTS="${PAGE_COUNTS:-$DEFAULT_PAGE_COUNTS}"
@@ -93,8 +93,8 @@ usage() {
     echo ""
     echo "Options:"
     echo "  -s, --ssgs LIST          Comma-separated list of SSGs to benchmark"
-    echo "                           (add 'hwaro-main' to also measure hwaro built from"
-    echo "                            its main branch — opt-in, never in the default set)"
+    echo "                           ('hwaro-<ref>' builds hwaro from that git ref, e.g."
+    echo "                            hwaro-main or hwaro-v0.18.0 — see METHODOLOGY.md)"
     echo "  -p, --pages LIST         Comma-separated list of page counts (default: 1000)"
     echo "  -n, --scenarios LIST     Comma-separated scenarios: minimal,blog,heavy (default: minimal,blog,heavy)"
     echo "  -i, --iterations N       Recorded iterations per benchmark (default: 3)"
@@ -114,7 +114,7 @@ usage() {
     echo "Examples:"
     echo "  $0 -s hugo,zola -p 100,1000 -i 5"
     echo "  $0 -n minimal,blog,heavy -s hugo,zola,hwaro"
-    echo "  $0 -s hwaro,hwaro-main            # released hwaro vs. unreleased main"
+    echo "  $0 -s hwaro-v0.18.0,hwaro-v0.18.1,hwaro-main   # hwaro against itself"
 }
 
 log() { echo -e "${BLUE}[INFO]${NC} $1"; }
@@ -275,14 +275,25 @@ resolve_git_ref_sha() {
 variant_build_args() {
     local ref
     case $1 in
+        # `hwaro-main` is the standing row, so its ref is configurable — that
+        # is also the escape hatch for refs that cannot be spelled in an SSG id
+        # (a branch with a slash in it, say).
         hwaro-main)
             ref="${HWARO_MAIN_REF:-$(versions_env_value HWARO_MAIN_REF)}"
             ref="${ref:-main}"
-            printf ' --build-arg HWARO_VERSION=%s' "$ref"
-            printf ' --build-arg HWARO_REF_SHA=%s' \
-                "$(resolve_git_ref_sha https://github.com/hahwul/hwaro.git "$ref")"
             ;;
+        # Otherwise the id names the ref: hwaro-v0.18.0 builds tag v0.18.0.
+        # Ad-hoc "is this tag faster than that one?" comparisons then need no
+        # configuration at all, and every row is labelled with the build it
+        # describes rather than with a position in an argument list.
+        hwaro-*)
+            ref="${1#hwaro-}"
+            ;;
+        *) return 0 ;;
     esac
+    printf ' --build-arg HWARO_VERSION=%s' "$ref"
+    printf ' --build-arg HWARO_REF_SHA=%s' \
+        "$(resolve_git_ref_sha https://github.com/hahwul/hwaro.git "$ref")"
 }
 
 # A variant reuses its family's Dockerfile verbatim — that is the point. A
@@ -336,10 +347,11 @@ version_cmd_for() {
     # Variants first: a variant's own --version is the shard version, which on
     # a branch is just whatever the last release bumped it to — identical to
     # the release row's string and therefore useless for telling the two runs
-    # apart. The commit is the identifying fact, so report both.
+    # apart. The ref and commit are the identifying facts, so report all three
+    # (the image records them at build time; see docker/Dockerfile.hwaro).
     case $1 in
-        hwaro-main)
-            echo 'echo "$(hwaro --version 2>/dev/null | head -1) [main @ $(cut -c1-12 /usr/local/share/hwaro-build-commit 2>/dev/null)]"'
+        hwaro-*)
+            echo 'echo "$(hwaro --version 2>/dev/null | head -1) [$(cut -d" " -f1 /usr/local/share/hwaro-build-ref 2>/dev/null) @ $(cut -c1-12 /usr/local/share/hwaro-build-commit 2>/dev/null)]"'
             return 0
             ;;
     esac

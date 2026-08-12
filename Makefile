@@ -2,7 +2,8 @@
 # Provides convenient commands for running benchmarks
 
 .PHONY: help build benchmark clean docker-build docker-clean \
-        benchmark-hugo benchmark-zola benchmark-jekyll benchmark-blades benchmark-hwaro benchmark-hwaro-main \
+        benchmark-hugo benchmark-zola benchmark-jekyll benchmark-blades \
+        benchmark-hwaro benchmark-hwaro-main benchmark-hwaro-versions \
         benchmark-eleventy benchmark-pelican benchmark-hexo benchmark-gatsby benchmark-astro benchmark-docusaurus \
         generate-content quick-test full-test report install-deps site
 
@@ -28,7 +29,13 @@ help:
 	@echo "  benchmark-jekyll    Benchmark Jekyll only"
 	@echo "  benchmark-blades    Benchmark Blades only"
 	@echo "  benchmark-hwaro     Benchmark Hwaro (pinned release) only"
-	@echo "  benchmark-hwaro-main Benchmark released Hwaro against its main branch"
+	@echo ""
+	@echo "Hwaro-vs-Hwaro (no other SSGs in the run):"
+	@echo "  benchmark-hwaro-main     Pinned release vs. the main branch"
+	@echo "  benchmark-hwaro-versions One row per git ref:"
+	@echo "                           make benchmark-hwaro-versions HWARO_REFS=\"v0.18.0 main\""
+	@echo ""
+	@echo "Other SSGs:"
 	@echo "  benchmark-eleventy  Benchmark Eleventy only"
 	@echo "  benchmark-pelican   Benchmark Pelican only"
 	@echo "  benchmark-hexo      Benchmark Hexo only"
@@ -53,7 +60,7 @@ help:
 	@echo "  ITERATIONS        Iterations per test (default: 3)"
 	@echo "  SCENARIOS         Scenarios: minimal blog heavy (default: 'minimal blog heavy')"
 	@echo "  WARMUP            Warmup builds per combination (default: 1)"
-	@echo "  SSGS              SSGs to benchmark (default: 'hugo zola jekyll hwaro eleventy pelican hexo gatsby astro docusaurus')"
+	@echo "  SSGS              SSGs to benchmark (default: 'hugo zola jekyll hwaro hwaro-main eleventy pelican hexo gatsby astro docusaurus')"
 	@echo "  USE_DOCKER        Use Docker containers (default: true)"
 	@echo ""
 	@echo "Examples:"
@@ -67,7 +74,7 @@ ITERATIONS ?= 3
 SCENARIOS ?= minimal blog heavy
 WARMUP ?= 1
 # Default SSGs for benchmarking (blades excluded due to build issues)
-SSGS ?= hugo zola jekyll hwaro eleventy pelican hexo gatsby astro docusaurus
+SSGS ?= hugo zola jekyll hwaro hwaro-main eleventy pelican hexo gatsby astro docusaurus
 USE_DOCKER ?= true
 VERBOSE ?= false
 
@@ -107,8 +114,11 @@ docker-build:
 		[ -f "$$dockerfile" ] || continue; \
 		args="$(DOCKER_BUILD_ARGS)"; \
 		case $$ssg in \
-			hwaro-main) args="$$(echo "$$args" | sed 's|--build-arg=HWARO_VERSION=[^ ]*||') --build-arg=HWARO_VERSION=$(HWARO_MAIN_REF) --no-cache" ;; \
+			hwaro-main) ref="$(HWARO_MAIN_REF)" ;; \
+			hwaro-*)    ref="$${ssg#hwaro-}" ;; \
+			*)          ref="" ;; \
 		esac; \
+		[ -z "$$ref" ] || args="$$(echo "$$args" | sed 's|--build-arg=HWARO_VERSION=[^ ]*||') --build-arg=HWARO_VERSION=$$ref --no-cache"; \
 		echo "Building image for $$ssg..."; \
 		docker build $$args -t $(DOCKER_PREFIX)-$$ssg -f $$dockerfile . || true; \
 	done
@@ -178,7 +188,7 @@ quick-test:
 	ITERATIONS=1 \
 	SCENARIOS="minimal" \
 	WARMUP=0 \
-	SSGS="hugo zola jekyll hwaro eleventy pelican hexo gatsby astro docusaurus" \
+	SSGS="hugo zola jekyll hwaro hwaro-main eleventy pelican hexo gatsby astro docusaurus" \
 	VERBOSE=true \
 	./$(SCRIPT_DIR)/benchmark.sh
 
@@ -245,9 +255,36 @@ benchmark-hwaro:
 	SSGS="hwaro" \
 	./$(SCRIPT_DIR)/benchmark.sh
 
-# Released hwaro vs. hwaro built from main, in one interleaved run so host
-# drift is shared between them. Both rows come from docker/Dockerfile.hwaro,
-# so the only difference between them is hwaro's own source.
+# hwaro against itself: one row per git ref, nothing else in the run.
+#
+#   make benchmark-hwaro-versions                                # pinned vs main
+#   make benchmark-hwaro-versions HWARO_REFS="v0.18.0 v0.18.1"   # tag vs tag
+#   make benchmark-hwaro-versions HWARO_REFS="v0.18.1 main my-branch"
+#
+# Each row is named for the ref it was built from, so the results say which
+# build they describe instead of leaving that to the argument order. All rows
+# come from docker/Dockerfile.hwaro, and running them together means they share
+# the same host conditions — which is what makes the numbers comparable.
+#
+# A ref has to be spellable in a docker image name (lowercase, no slashes).
+# For anything else, point HWARO_MAIN_REF at it and use the hwaro-main row.
+HWARO_PINNED_REF := $(shell sed -n 's/^HWARO_VERSION=//p' $(DOCKER_DIR)/versions.env)
+HWARO_REFS ?= $(HWARO_PINNED_REF) $(HWARO_MAIN_REF)
+
+benchmark-hwaro-versions:
+	@chmod +x $(SCRIPT_DIR)/*.sh
+	@echo "Comparing hwaro refs: $(HWARO_REFS)"
+	USE_DOCKER=$(USE_DOCKER) \
+	PAGE_COUNTS="$(PAGE_COUNTS)" \
+	ITERATIONS=$(ITERATIONS) \
+	SCENARIOS="$(SCENARIOS)" \
+	WARMUP=$(WARMUP) \
+	VERBOSE=$(VERBOSE) \
+	SSGS="$(foreach r,$(HWARO_REFS),hwaro-$(r))" \
+	./$(SCRIPT_DIR)/benchmark.sh
+
+# The common case as a fixed pair: the pinned release row exactly as the
+# cross-SSG comparison builds it, against main.
 benchmark-hwaro-main:
 	@chmod +x $(SCRIPT_DIR)/*.sh
 	USE_DOCKER=$(USE_DOCKER) \

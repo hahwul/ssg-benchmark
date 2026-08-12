@@ -9,14 +9,16 @@
 #
 # The benchmark does also measure hwaro's unreleased work, because "did this
 # month's commits make hwaro faster?" is a question this repo exists to answer
-# — it is just a different question from the cross-SSG comparison, and it gets
-# its own SSG id (`hwaro-main`) rather than being folded into the `hwaro` row.
-# That variant builds from THIS Dockerfile, not a copy: same builder image,
-# same shards flags, same runner stage, only HWARO_VERSION differs. A copy
-# would be free to drift, and then a difference in the numbers could be a
-# difference in the build rather than in hwaro. hwaro-main is opt-in (never in
-# the default SSG set) and is not published beside the release row.
-# See METHODOLOGY.md.
+# — it is just a different question from the cross-SSG comparison, so it gets
+# its own SSG id (`hwaro-<ref>`, e.g. `hwaro-main`) rather than being folded
+# into the `hwaro` row. The pinning above is untouched: `hwaro` is still the
+# release, still the row that represents hwaro against other SSGs, and a
+# variant never substitutes for it.
+#
+# A variant builds from THIS Dockerfile, not a copy: same builder image, same
+# shards flags, same runner stage, only HWARO_VERSION differs. A copy would be
+# free to drift, and then a difference in the numbers could be a difference in
+# the build rather than in hwaro. See METHODOLOGY.md.
 
 ##= BUILDER =##
 # Keep in sync with docker/versions.env.

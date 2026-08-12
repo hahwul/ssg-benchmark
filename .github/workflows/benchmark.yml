@@ -14,7 +14,7 @@ on:
       ssgs:
         description: 'SSGs to benchmark (space-separated)'
         required: false
-        default: 'hugo zola jekyll hwaro eleventy pelican hexo'
+        default: 'hugo zola jekyll hwaro hwaro-main eleventy pelican hexo'
       scenarios:
         description: 'Scenarios (space-separated): minimal blog heavy'
         required: false
@@ -29,7 +29,7 @@ on:
         default: '3'
 
 env:
-  DEFAULT_SSGS: 'hugo zola jekyll hwaro eleventy pelican hexo'
+  DEFAULT_SSGS: 'hugo zola jekyll hwaro hwaro-main eleventy pelican hexo'
   DEFAULT_SCENARIOS: 'minimal blog heavy'
   DEFAULT_PAGE_COUNTS: '10 100 1000'
   DEFAULT_ITERATIONS: '3'

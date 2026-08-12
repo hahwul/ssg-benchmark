@@ -187,21 +187,31 @@ unreleased HEAD would put its thumb on the scale. But "did this month's commits
 make hwaro faster?" is the question this repo exists to answer, and that needs
 a build from `main`.
 
-So it gets its own row rather than redefining the release one. `hwaro-main` is
-hwaro built from its main branch, using the *same* `docker/Dockerfile.hwaro` —
-same Crystal image, same build flags — with only the source ref changed:
+So it gets its own row rather than redefining the release one. `hwaro-<ref>`
+builds hwaro from that git ref using the *same* `docker/Dockerfile.hwaro` —
+same Crystal image, same build flags — with only the source ref changed.
+`hwaro-main` is in the default SSG set, so every run shows released and
+unreleased hwaro side by side. To compare hwaro against itself and nothing
+else:
 
 ```bash
-# Both in one run, so they share the same host conditions
-./scripts/benchmark.sh -s hwaro,hwaro-main -n minimal,blog,heavy
+# Pinned release vs. main
 make benchmark-hwaro-main
+
+# Any set of refs — one row per ref, named for it
+make benchmark-hwaro-versions HWARO_REFS="v0.18.0 v0.18.1 main"
+./scripts/benchmark.sh -s hwaro-v0.18.0,hwaro-main -n minimal,blog,heavy
 ```
 
-The run resolves `main` to its current commit so a cached image layer can't
-serve a stale build, and `versions.json` records the commit each row was built
-from. `hwaro-main` is opt-in — it is in no default SSG set and no published
-run. Point it at another branch with `HWARO_MAIN_REF=my-branch`.
-Details in [METHODOLOGY.md](METHODOLOGY.md#variant-builds-hwaro-main).
+Refs must be spellable in a docker image name (lowercase, no slashes); for
+anything else use `HWARO_MAIN_REF=my-branch`. The run resolves a moving ref to
+its current commit so a cached image layer can't serve a stale build, and
+`versions.json` records the ref and commit each row was built from.
+
+**The two rows mean different things.** `hwaro` is the pinned release and is
+the only one to read as "hwaro vs. the other SSGs"; `hwaro-main` is unreleased
+code, there to catch regressions before they ship.
+Details in [METHODOLOGY.md](METHODOLOGY.md#variant-builds-hwaro-ref).
 
 ### Example Configurations
 

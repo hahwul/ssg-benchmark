@@ -83,10 +83,11 @@ services:
     mem_limit: 4g
     cpus: 2
 
-  # Hwaro built from its main branch, for measuring unreleased work against the
-  # pinned release above. Same Dockerfile, same builder image, same flags — only
-  # the source ref differs. Behind a profile so it is never part of the default
-  # cross-SSG comparison: `docker compose --profile dev build hwaro-main`.
+  # Hwaro built from its main branch, measured alongside the pinned release
+  # above so unreleased work is visible. Same Dockerfile, same builder image,
+  # same flags — only the source ref differs, which is what makes the two rows
+  # comparable. It never replaces the release row: that one is what represents
+  # hwaro in the cross-SSG comparison.
   hwaro-main:
     build:
       context: .
@@ -102,8 +103,6 @@ services:
     command: ["hwaro", "build"]
     mem_limit: 4g
     cpus: 2
-    profiles:
-      - dev
 
   # Eleventy - A simpler static site generator
   eleventy:
@@ -213,13 +212,14 @@ services:
       - ITERATIONS=3
       - PAGE_COUNTS=10 100 1000 5000
       - SCENARIOS=minimal blog heavy
-      - SSGS=hugo zola jekyll blades hwaro eleventy pelican hexo gatsby astro docusaurus
+      - SSGS=hugo zola jekyll blades hwaro hwaro-main eleventy pelican hexo gatsby astro docusaurus
     depends_on:
       - hugo
       - zola
       - jekyll
       - blades
       - hwaro
+      - hwaro-main
       - eleventy
       - pelican
       - hexo

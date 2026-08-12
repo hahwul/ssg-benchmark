@@ -86,7 +86,7 @@ Each run records what it actually measured in `versions.json` (pinned *and*
 observed versions, base OS, language runtime), rendered into `summary.md` and
 carried into the dashboard's `data.json`.
 
-### Variant builds (`hwaro-main`)
+### Variant builds (`hwaro-<ref>`)
 
 This repo has two jobs. One is the cross-SSG comparison above, where hwaro is
 pinned to a release like everything else. The other is measuring hwaro's own
@@ -94,36 +94,49 @@ development — "did this month's commits make it faster?" — which needs a bui
 from `main`, exactly what the pinning above forbids.
 
 Those are separate rows, not a redefinition of the first. An SSG id may be
-`<family>-<variant>`, and `hwaro-main` is hwaro built from its main branch:
+`<family>-<variant>`, and for hwaro the variant is a git ref: `hwaro-main`
+builds the main branch, `hwaro-v0.18.0` builds that tag. `hwaro` itself is
+unchanged — still the pinned release, still the row that stands for hwaro in
+the cross-SSG table, never substituted by a variant.
+
+`hwaro-main` runs in the default SSG set, so every run shows released and
+unreleased hwaro side by side. Any other ref is ad-hoc:
 
 ```sh
-./scripts/benchmark.sh -s hwaro,hwaro-main       # or: make benchmark-hwaro-main
+make benchmark-hwaro-main                                    # release vs main
+make benchmark-hwaro-versions HWARO_REFS="v0.18.0 v0.18.1"   # tag vs tag
+./scripts/benchmark.sh -s hwaro-v0.18.0,hwaro-main           # equivalent
 ```
 
-The variant is constrained so that a difference in its numbers can only be a
+A ref has to be spellable in a docker image name (lowercase, no slashes).
+For anything else, point `HWARO_MAIN_REF` at it and use the `hwaro-main` id.
+
+Variants are constrained so that a difference in their numbers can only be a
 difference in hwaro's source:
 
-- **Same Dockerfile**, not a copy. `hwaro-main` builds from
+- **Same Dockerfile**, not a copy. A variant builds from
   `docker/Dockerfile.hwaro` with `HWARO_VERSION` replaced — same Crystal image,
   same `shards build` flags, same runner stage. A dedicated
   `Dockerfile.hwaro-main` would be free to drift, and a drifted compiler flag
   would read as a hwaro performance change.
 - **Same site, same content.** Templates, scenario overlay, generated corpus,
-  build command and output directory all resolve to the *family*, so both rows
-  do identical work.
-- **Same run.** Benchmark them together and the interleaved execution order
-  puts both through the same host drift, which is the whole point of comparing
-  them.
+  build command and output directory all resolve to the *family*, so every
+  hwaro row does identical work and the scenario support matrix is inherited.
+- **Same run.** Benchmarked together, the interleaved execution order puts
+  every row through the same host drift, which is the whole point of comparing
+  them. Numbers from separate runs are not a version comparison.
 - **Not stale.** A branch's contents move while its name does not, so the image
   layer that clones it would be cached forever. The runner resolves the ref to
   its current commit (`git ls-remote`) and keys the layer on that; the probe in
-  `versions.json` reports the built commit, not just the shard version — which
-  on `main` is whatever the last release bumped it to and would otherwise be
-  indistinguishable from the release row.
+  `versions.json` reports the built ref and commit, not just the shard version
+  — which on `main` is whatever the last release bumped it to and would
+  otherwise be indistinguishable from the release row.
 
-`hwaro-main` is opt-in: it is in no default SSG set, no scheduled workflow and
-no published run. The comparison this repo publishes contains one hwaro, and it
-is the released one.
+The published table therefore carries two hwaro rows, and they mean different
+things: `hwaro` is the release, and is the only one to read as "hwaro vs. the
+other SSGs"; `hwaro-main` is unreleased code, present so regressions are caught
+before they ship. Reading the faster of the two as hwaro's cross-SSG result
+would be exactly the thumb on the scale the pinning exists to prevent.
 
 ## Deterministic content
 

@@ -10,11 +10,10 @@ const SSG_META = {
   astro:      { color: '#FF5D01', lang: 'Node.js', desc: 'The web framework for content-driven websites' },
   blades:     { color: '#E44D26', lang: 'Rust',    desc: 'A blazing fast dead simple static site generator' },
   docusaurus: { color: '#2E8555', lang: 'Node.js', desc: 'Build optimized websites quickly with React' },
-  // Opt-in development row, not part of the published cross-SSG comparison:
-  // hwaro built from its main branch, so unreleased work can be measured
-  // against the pinned release without the release row tracking HEAD.
-  // Only appears in runs that explicitly asked for it.
-  'hwaro-main': { color: '#9AA0A6', lang: 'Crystal', desc: 'Hwaro built from main (unreleased, dev comparison only)' }
+  // Unreleased hwaro, shown beside the pinned release so regressions are
+  // visible before they ship. It is NOT hwaro's cross-SSG result — the `hwaro`
+  // row above is, which is why this one is greyed rather than brand-coloured.
+  'hwaro-main': { color: '#9AA0A6', lang: 'Crystal', desc: 'Hwaro built from main — unreleased; compare against the hwaro row, not other SSGs' }
 };
 
 const SCENARIO_LABELS = {
