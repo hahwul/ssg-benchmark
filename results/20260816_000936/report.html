@@ -1,0 +1,266 @@
+[0;34m[REPORT][0m Processing results from: results/20260816_000936
+[0;34m[REPORT][0m Multiple scenarios in results; html report covers scenario 'blog' only.
+[0;34m[REPORT][0m Use -f markdown for all scenarios.
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SSG Benchmark Report</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1, h2, h3 { color: #333; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            margin: 20px 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th { background: #4a90d9; color: white; }
+        tr:hover { background: #f0f7ff; }
+        .bar-container {
+            width: 100%;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .bar {
+            height: 24px;
+            background: linear-gradient(90deg, #4a90d9, #67b26f);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            padding-left: 8px;
+            color: white;
+            font-size: 12px;
+        }
+        .summary-card {
+            background: white;
+            padding: 20px;
+            margin: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: inline-block;
+            min-width: 200px;
+        }
+        .summary-card h3 { margin-top: 0; color: #4a90d9; }
+        .metric { font-size: 2em; font-weight: bold; color: #333; }
+    </style>
+</head>
+<body>
+    <h1>🚀 SSG Benchmark Report</h1>
+    <p><strong>Generated:</strong> Sun Aug 16 00:26:53 UTC 2026</p>
+    <p><strong>Results ID:</strong> 20260816_000936</p>
+    <h2>📊 Summary</h2>
+    <table>
+        <tr><th>SSG</th><th>Pages</th><th>Avg Time (ms)</th><th>Min</th><th>Max</th><th>Memory (KB)</th><th>Visualization</th></tr>
+        <tr>
+            <td><strong>eleventy</strong></td>
+            <td>10</td>
+            <td>303.3</td>
+            <td>300</td>
+            <td>308</td>
+            <td>63633</td>
+            <td><div class="bar-container"><div class="bar" style="width: 7%">303.3ms</div></div></td>
+        </tr>
+        <tr>
+            <td><strong>eleventy</strong></td>
+            <td>100</td>
+            <td>453.7</td>
+            <td>429</td>
+            <td>492</td>
+            <td>89431</td>
+            <td><div class="bar-container"><div class="bar" style="width: 11%">453.7ms</div></div></td>
+        </tr>
+        <tr>
+            <td><strong>eleventy</strong></td>
+            <td>1000</td>
+            <td>1373.0</td>
+            <td>1324</td>
+            <td>1450</td>
+            <td>179068</td>
+            <td><div class="bar-container"><div class="bar" style="width: 33%">1373.0ms</div></div></td>
+        </tr>
+        <tr>
+            <td><strong>hexo</strong></td>
+            <td>10</td>
+            <td>360.3</td>
+            <td>357</td>
+            <td>363</td>
+            <td>67420</td>
+            <td><div class="bar-container"><div class="bar" style="width: 8%">360.3ms</div></div></td>
+        </tr>
+        <tr>
+            <td><strong>hexo</strong></td>
+            <td>100</td>
+            <td>569.0</td>
+            <td>565</td>
+            <td>572</td>
+            <td>106855</td>
+            <td><div class="bar-container"><div class="bar" style="width: 13%">569.0ms</div></div></td>
+        </tr>
+        <tr>
+            <td><strong>hexo</strong></td>
+            <td>1000</td>
+            <td>2532.0</td>
+            <td>2422</td>
+            <td>2709</td>
+            <td>391663</td>
+            <td><div class="bar-container"><div class="bar" style="width: 62%">2532.0ms</div></div></td>
+        </tr>
+        <tr>
+            <td><strong>hugo</strong></td>
+            <td>10</td>
+            <td>54.3</td>
+            <td>53</td>
+            <td>56</td>
+            <td>24193</td>
+            <td><div class="bar-container"><div class="bar" style="width: 1%">54.3ms</div></div></td>
+        </tr>
+        <tr>
+            <td><strong>hugo</strong></td>
+            <td>100</td>
+            <td>211.7</td>
+            <td>171</td>
+            <td>289</td>
+            <td>42004</td>
+            <td><div class="bar-container"><div class="bar" style="width: 5%">211.7ms</div></div></td>
+        </tr>
+        <tr>
+            <td><strong>hugo</strong></td>
+            <td>1000</td>
+            <td>1282.3</td>
+            <td>1221</td>
+            <td>1378</td>
+            <td>162331</td>
+            <td><div class="bar-container"><div class="bar" style="width: 31%">1282.3ms</div></div></td>
+        </tr>
+        <tr>
+            <td><strong>hwaro</strong></td>
+            <td>10</td>
+            <td>26.3</td>
+            <td>26</td>
+            <td>27</td>
+            <td>18561</td>
+            <td><div class="bar-container"><div class="bar" style="width: 0%">26.3ms</div></div></td>
+        </tr>
+        <tr>
+            <td><strong>hwaro</strong></td>
+            <td>100</td>
+            <td>48.0</td>
+            <td>46</td>
+            <td>49</td>
+            <td>30819</td>
+            <td><div class="bar-container"><div class="bar" style="width: 1%">48.0ms</div></div></td>
+        </tr>
+        <tr>
+            <td><strong>hwaro</strong></td>
+            <td>1000</td>
+            <td>342.7</td>
+            <td>318</td>
+            <td>362</td>
+            <td>78671</td>
+            <td><div class="bar-container"><div class="bar" style="width: 8%">342.7ms</div></div></td>
+        </tr>
+        <tr>
+            <td><strong>jekyll</strong></td>
+            <td>10</td>
+            <td>322.3</td>
+            <td>321</td>
+            <td>323</td>
+            <td>40672</td>
+            <td><div class="bar-container"><div class="bar" style="width: 7%">322.3ms</div></div></td>
+        </tr>
+        <tr>
+            <td><strong>jekyll</strong></td>
+            <td>100</td>
+            <td>379.0</td>
+            <td>367</td>
+            <td>400</td>
+            <td>45435</td>
+            <td><div class="bar-container"><div class="bar" style="width: 9%">379.0ms</div></div></td>
+        </tr>
+        <tr>
+            <td><strong>jekyll</strong></td>
+            <td>1000</td>
+            <td>885.3</td>
+            <td>754</td>
+            <td>1095</td>
+            <td>83660</td>
+            <td><div class="bar-container"><div class="bar" style="width: 21%">885.3ms</div></div></td>
+        </tr>
+        <tr>
+            <td><strong>pelican</strong></td>
+            <td>10</td>
+            <td>390.3</td>
+            <td>294</td>
+            <td>537</td>
+            <td>34576</td>
+            <td><div class="bar-container"><div class="bar" style="width: 9%">390.3ms</div></div></td>
+        </tr>
+        <tr>
+            <td><strong>pelican</strong></td>
+            <td>100</td>
+            <td>629.0</td>
+            <td>626</td>
+            <td>631</td>
+            <td>37231</td>
+            <td><div class="bar-container"><div class="bar" style="width: 15%">629.0ms</div></div></td>
+        </tr>
+        <tr>
+            <td><strong>pelican</strong></td>
+            <td>1000</td>
+            <td>4081.0</td>
+            <td>3888</td>
+            <td>4314</td>
+            <td>59563</td>
+            <td><div class="bar-container"><div class="bar" style="width: 100%">4081.0ms</div></div></td>
+        </tr>
+        <tr>
+            <td><strong>zola</strong></td>
+            <td>10</td>
+            <td>228.3</td>
+            <td>223</td>
+            <td>237</td>
+            <td>137027</td>
+            <td><div class="bar-container"><div class="bar" style="width: 5%">228.3ms</div></div></td>
+        </tr>
+        <tr>
+            <td><strong>zola</strong></td>
+            <td>100</td>
+            <td>316.0</td>
+            <td>311</td>
+            <td>324</td>
+            <td>144093</td>
+            <td><div class="bar-container"><div class="bar" style="width: 7%">316.0ms</div></div></td>
+        </tr>
+        <tr>
+            <td><strong>zola</strong></td>
+            <td>1000</td>
+            <td>1234.0</td>
+            <td>1185</td>
+            <td>1315</td>
+            <td>217168</td>
+            <td><div class="bar-container"><div class="bar" style="width: 30%">1234.0ms</div></div></td>
+        </tr>
+    </table>
+    <h2>📈 Analysis</h2>
+    <p>Lower build times indicate better performance. Memory usage should be considered alongside build time for overall efficiency.</p>
+
+    <footer style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; color: #666;">
+        <p>Generated by SSG Benchmark - <a href="https://github.com/hahwul/ssg-benchmark">GitHub</a></p>
+    </footer>
+</body>
+</html>
