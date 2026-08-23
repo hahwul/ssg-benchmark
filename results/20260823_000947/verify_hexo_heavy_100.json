@@ -1,0 +1,69 @@
+{
+  "ssg": "hexo",
+  "scenario": "heavy",
+  "pages": 100,
+  "ok": true,
+  "failed": [],
+  "checks": [
+    {
+      "name": "post_pages",
+      "ok": true,
+      "detail": "100 post pages for 100 inputs"
+    },
+    {
+      "name": "sample_post",
+      "ok": true,
+      "detail": "post-1/index.html"
+    },
+    {
+      "name": "post_not_empty",
+      "ok": true,
+      "detail": "10262 bytes in post-1/index.html"
+    },
+    {
+      "name": "index_page",
+      "ok": true,
+      "detail": "index.html"
+    },
+    {
+      "name": "tag_pages",
+      "ok": true,
+      "detail": "10 tag pages (expected >= 8)"
+    },
+    {
+      "name": "feed",
+      "ok": true,
+      "detail": "atom.xml"
+    },
+    {
+      "name": "pagination",
+      "ok": true,
+      "detail": "9 pagination pages (expected >= 2)"
+    },
+    {
+      "name": "syntax_highlighting",
+      "ok": true,
+      "detail": "tokenised <pre> in post-1/index.html"
+    },
+    {
+      "name": "sidebar",
+      "ok": true,
+      "detail": "class=\"sidebar\" in post-1/index.html"
+    },
+    {
+      "name": "breadcrumbs",
+      "ok": true,
+      "detail": "class=\"breadcrumbs\" in post-1/index.html"
+    },
+    {
+      "name": "post_nav",
+      "ok": true,
+      "detail": "class=\"post-nav\" in post-1/index.html"
+    },
+    {
+      "name": "sidebar_populated",
+      "ok": true,
+      "detail": "20 <li> entries after the sidebar element"
+    }
+  ]
+}
