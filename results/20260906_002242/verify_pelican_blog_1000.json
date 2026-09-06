@@ -1,0 +1,53 @@
+{
+  "ssg": "pelican",
+  "scenario": "blog",
+  "pages": 1000,
+  "ok": false,
+  "failed": [
+    "tag_pages",
+    "feed",
+    "pagination"
+  ],
+  "checks": [
+    {
+      "name": "post_pages",
+      "ok": true,
+      "detail": "1000 post pages for 1000 inputs"
+    },
+    {
+      "name": "sample_post",
+      "ok": true,
+      "detail": "post-1.html"
+    },
+    {
+      "name": "post_not_empty",
+      "ok": true,
+      "detail": "9775 bytes in post-1.html"
+    },
+    {
+      "name": "index_page",
+      "ok": true,
+      "detail": "index.html"
+    },
+    {
+      "name": "tag_pages",
+      "ok": false,
+      "detail": "0 tag pages (expected >= 8)"
+    },
+    {
+      "name": "feed",
+      "ok": false,
+      "detail": "no feed file found"
+    },
+    {
+      "name": "pagination",
+      "ok": false,
+      "detail": "0 pagination pages (expected >= 2)"
+    },
+    {
+      "name": "syntax_highlighting",
+      "ok": true,
+      "detail": "tokenised <pre> in post-1.html"
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "ssg": "hugo",
+  "scenario": "minimal",
+  "pages": 1000,
+  "ok": true,
+  "failed": [],
+  "checks": [
+    {
+      "name": "post_pages",
+      "ok": true,
+      "detail": "1000 post pages for 1000 inputs"
+    },
+    {
+      "name": "sample_post",
+      "ok": true,
+      "detail": "posts/post-1/index.html"
+    },
+    {
+      "name": "post_not_empty",
+      "ok": true,
+      "detail": "3662 bytes in posts/post-1/index.html"
+    },
+    {
+      "name": "index_page",
+      "ok": true,
+      "detail": "index.html"
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "ssg": "hexo",
+  "scenario": "blog",
+  "pages": 10,
+  "ok": false,
+  "failed": [
+    "pagination"
+  ],
+  "checks": [
+    {
+      "name": "post_pages",
+      "ok": true,
+      "detail": "10 post pages for 10 inputs"
+    },
+    {
+      "name": "sample_post",
+      "ok": true,
+      "detail": "post-1/index.html"
+    },
+    {
+      "name": "post_not_empty",
+      "ok": true,
+      "detail": "8052 bytes in post-1/index.html"
+    },
+    {
+      "name": "index_page",
+      "ok": true,
+      "detail": "index.html"
+    },
+    {
+      "name": "tag_pages",
+      "ok": true,
+      "detail": "10 tag pages (expected >= 8)"
+    },
+    {
+      "name": "feed",
+      "ok": true,
+      "detail": "atom.xml"
+    },
+    {
+      "name": "pagination",
+      "ok": false,
+      "detail": "0 pagination pages (expected >= 2)"
+    },
+    {
+      "name": "syntax_highlighting",
+      "ok": true,
+      "detail": "tokenised <pre> in post-1/index.html"
+    }
+  ]
+}

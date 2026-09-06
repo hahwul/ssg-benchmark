@@ -1,0 +1,65 @@
+[0;34m[REPORT][0m Processing results from: results/20260906_002242
+[0;34m[REPORT][0m Multiple scenarios in results; json report covers scenario 'blog' only.
+[0;34m[REPORT][0m Use -f markdown for all scenarios.
+{
+  "generated": "2026-09-06T00:42:45+00:00",
+  "results_id": "20260906_002242",
+  "benchmarks": [
+    {
+      "ssg": "eleventy",
+      "results": [
+        {"page_count": 10, "avg_time_ms": 523.7, "min_time_ms": 516, "max_time_ms": 529, "std_dev": 6.8, "avg_memory_kb": 59168},
+        {"page_count": 100, "avg_time_ms": 705.3, "min_time_ms": 697, "max_time_ms": 715, "std_dev": 9.1, "avg_memory_kb": 89168},
+        {"page_count": 1000, "avg_time_ms": 2135.7, "min_time_ms": 2099, "max_time_ms": 2162, "std_dev": 32.7, "avg_memory_kb": 177632}
+      ]
+    },
+    {
+      "ssg": "hexo",
+      "results": [
+        {"page_count": 10, "avg_time_ms": 619.0, "min_time_ms": 615, "max_time_ms": 624, "std_dev": 4.6, "avg_memory_kb": 67119},
+        {"page_count": 100, "avg_time_ms": 963.7, "min_time_ms": 958, "max_time_ms": 974, "std_dev": 9.0, "avg_memory_kb": 106316},
+        {"page_count": 1000, "avg_time_ms": 3954.3, "min_time_ms": 3927, "max_time_ms": 3982, "std_dev": 27.5, "avg_memory_kb": 383708}
+      ]
+    },
+    {
+      "ssg": "hugo",
+      "results": [
+        {"page_count": 10, "avg_time_ms": 70.0, "min_time_ms": 67, "max_time_ms": 75, "std_dev": 4.4, "avg_memory_kb": 24456},
+        {"page_count": 100, "avg_time_ms": 242.3, "min_time_ms": 233, "max_time_ms": 253, "std_dev": 10.1, "avg_memory_kb": 41421},
+        {"page_count": 1000, "avg_time_ms": 1858.7, "min_time_ms": 1816, "max_time_ms": 1922, "std_dev": 55.9, "avg_memory_kb": 159199}
+      ]
+    },
+    {
+      "ssg": "hwaro",
+      "results": [
+        {"page_count": 10, "avg_time_ms": 37.0, "min_time_ms": 37, "max_time_ms": 37, "std_dev": 0.0, "avg_memory_kb": 18081},
+        {"page_count": 100, "avg_time_ms": 86.0, "min_time_ms": 70, "max_time_ms": 95, "std_dev": 13.9, "avg_memory_kb": 31233},
+        {"page_count": 1000, "avg_time_ms": 621.3, "min_time_ms": 606, "max_time_ms": 630, "std_dev": 13.3, "avg_memory_kb": 78139}
+      ]
+    },
+    {
+      "ssg": "jekyll",
+      "results": [
+        {"page_count": 10, "avg_time_ms": 586.3, "min_time_ms": 579, "max_time_ms": 593, "std_dev": 7.0, "avg_memory_kb": 40456},
+        {"page_count": 100, "avg_time_ms": 672.3, "min_time_ms": 658, "max_time_ms": 686, "std_dev": 14.0, "avg_memory_kb": 45353},
+        {"page_count": 1000, "avg_time_ms": 1513.7, "min_time_ms": 1458, "max_time_ms": 1553, "std_dev": 49.6, "avg_memory_kb": 83513}
+      ]
+    },
+    {
+      "ssg": "pelican",
+      "results": [
+        {"page_count": 10, "avg_time_ms": 439.7, "min_time_ms": 436, "max_time_ms": 445, "std_dev": 4.7, "avg_memory_kb": 33067},
+        {"page_count": 100, "avg_time_ms": 1004.0, "min_time_ms": 996, "max_time_ms": 1019, "std_dev": 13.0, "avg_memory_kb": 35397},
+        {"page_count": 1000, "avg_time_ms": 6481.7, "min_time_ms": 6338, "max_time_ms": 6617, "std_dev": 139.7, "avg_memory_kb": 57840}
+      ]
+    },
+    {
+      "ssg": "zola",
+      "results": [
+        {"page_count": 10, "avg_time_ms": 329.3, "min_time_ms": 308, "max_time_ms": 370, "std_dev": 35.2, "avg_memory_kb": 137052},
+        {"page_count": 100, "avg_time_ms": 448.0, "min_time_ms": 432, "max_time_ms": 478, "std_dev": 26.0, "avg_memory_kb": 143824},
+        {"page_count": 1000, "avg_time_ms": 1694.0, "min_time_ms": 1625, "max_time_ms": 1803, "std_dev": 95.5, "avg_memory_kb": 216855}
+      ]
+    }
+  ]
+}
