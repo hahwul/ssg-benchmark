@@ -1,0 +1,49 @@
+{
+  "ssg": "zola",
+  "scenario": "blog",
+  "pages": 1000,
+  "ok": true,
+  "failed": [],
+  "checks": [
+    {
+      "name": "post_pages",
+      "ok": true,
+      "detail": "1000 post pages for 1000 inputs"
+    },
+    {
+      "name": "sample_post",
+      "ok": true,
+      "detail": "posts/post-1/index.html"
+    },
+    {
+      "name": "post_not_empty",
+      "ok": true,
+      "detail": "8306 bytes in posts/post-1/index.html"
+    },
+    {
+      "name": "index_page",
+      "ok": true,
+      "detail": "index.html"
+    },
+    {
+      "name": "tag_pages",
+      "ok": true,
+      "detail": "10 tag pages (expected >= 8)"
+    },
+    {
+      "name": "feed",
+      "ok": true,
+      "detail": "atom.xml"
+    },
+    {
+      "name": "pagination",
+      "ok": true,
+      "detail": "100 pagination pages (expected >= 2)"
+    },
+    {
+      "name": "syntax_highlighting",
+      "ok": true,
+      "detail": "tokenised <pre> in posts/post-1/index.html"
+    }
+  ]
+}
