@@ -1,0 +1,29 @@
+{
+  "ssg": "jekyll",
+  "scenario": "minimal",
+  "pages": 100,
+  "ok": true,
+  "failed": [],
+  "checks": [
+    {
+      "name": "post_pages",
+      "ok": true,
+      "detail": "100 post pages for 100 inputs"
+    },
+    {
+      "name": "sample_post",
+      "ok": true,
+      "detail": "posts/post-1/index.html"
+    },
+    {
+      "name": "post_not_empty",
+      "ok": true,
+      "detail": "3720 bytes in posts/post-1/index.html"
+    },
+    {
+      "name": "index_page",
+      "ok": true,
+      "detail": "index.html"
+    }
+  ]
+}

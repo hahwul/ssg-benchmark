@@ -1,0 +1,15 @@
+{
+  "rule": "mismatch when max_html_files > min * 1.10 + 5",
+  "cells": [
+    {"scenario": "minimal", "page_count": 10, "ok": true, "undercount": "", "html_files": {"hugo": 12, "zola": 13, "jekyll": 12, "hwaro": 12, "eleventy": 12, "pelican": 11, "hexo": 12}},
+    {"scenario": "minimal", "page_count": 100, "ok": true, "undercount": "", "html_files": {"hugo": 102, "zola": 103, "jekyll": 102, "hwaro": 102, "eleventy": 102, "pelican": 101, "hexo": 102}},
+    {"scenario": "minimal", "page_count": 1000, "ok": true, "undercount": "", "html_files": {"hugo": 1002, "zola": 1003, "jekyll": 1002, "hwaro": 1002, "eleventy": 1002, "pelican": 1001, "hexo": 1002}},
+    {"scenario": "blog", "page_count": 10, "ok": true, "undercount": "", "html_files": {"hugo": 24, "zola": 25, "jekyll": 22, "hwaro": 23, "eleventy": 22, "pelican": 21, "hexo": 22}},
+    {"scenario": "blog", "page_count": 100, "ok": true, "undercount": "", "html_files": {"hugo": 123, "zola": 124, "jekyll": 121, "hwaro": 122, "eleventy": 121, "pelican": 120, "hexo": 121}},
+    {"scenario": "blog", "page_count": 1000, "ok": true, "undercount": "", "html_files": {"hugo": 1113, "zola": 1114, "jekyll": 1111, "hwaro": 1112, "eleventy": 1111, "pelican": 1110, "hexo": 1111}},
+    {"scenario": "heavy", "page_count": 10, "ok": true, "undercount": "", "html_files": {"hugo": 24, "zola": 25, "jekyll": 22, "hwaro": 23, "eleventy": 22, "pelican": 21, "hexo": 22}},
+    {"scenario": "heavy", "page_count": 100, "ok": true, "undercount": "", "html_files": {"hugo": 123, "zola": 124, "jekyll": 121, "hwaro": 122, "eleventy": 121, "pelican": 120, "hexo": 121}},
+    {"scenario": "heavy", "page_count": 1000, "ok": true, "undercount": "", "html_files": {"hugo": 1113, "zola": 1114, "jekyll": 1111, "hwaro": 1112, "eleventy": 1111, "pelican": 1110, "hexo": 1111}}
+  ],
+  "ok": true
+}
