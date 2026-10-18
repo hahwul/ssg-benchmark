@@ -1,0 +1,73 @@
+{
+  "ssg": "pelican",
+  "scenario": "heavy",
+  "pages": 1000,
+  "ok": false,
+  "failed": [
+    "tag_pages",
+    "feed",
+    "pagination"
+  ],
+  "checks": [
+    {
+      "name": "post_pages",
+      "ok": true,
+      "detail": "1000 post pages for 1000 inputs"
+    },
+    {
+      "name": "sample_post",
+      "ok": true,
+      "detail": "post-1.html"
+    },
+    {
+      "name": "post_not_empty",
+      "ok": true,
+      "detail": "12354 bytes in post-1.html"
+    },
+    {
+      "name": "index_page",
+      "ok": true,
+      "detail": "index.html"
+    },
+    {
+      "name": "tag_pages",
+      "ok": false,
+      "detail": "0 tag pages (expected >= 8)"
+    },
+    {
+      "name": "feed",
+      "ok": false,
+      "detail": "no feed file found"
+    },
+    {
+      "name": "pagination",
+      "ok": false,
+      "detail": "0 pagination pages (expected >= 2)"
+    },
+    {
+      "name": "syntax_highlighting",
+      "ok": true,
+      "detail": "tokenised <pre> in post-1.html"
+    },
+    {
+      "name": "sidebar",
+      "ok": true,
+      "detail": "class=\"sidebar\" in post-1.html"
+    },
+    {
+      "name": "breadcrumbs",
+      "ok": true,
+      "detail": "class=\"breadcrumbs\" in post-1.html"
+    },
+    {
+      "name": "post_nav",
+      "ok": true,
+      "detail": "class=\"post-nav\" in post-1.html"
+    },
+    {
+      "name": "sidebar_populated",
+      "ok": true,
+      "detail": "20 <li> entries after the sidebar element"
+    }
+  ]
+}
