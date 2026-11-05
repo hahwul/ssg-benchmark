@@ -6,7 +6,7 @@ LABEL description="Astro SSG Benchmark Environment"
 
 # Keep in sync with docker/versions.env. Also pinned exactly in
 # sites/astro/package.json, which is what `npx astro build` actually resolves.
-ARG ASTRO_VERSION=5.18.2
+ARG ASTRO_VERSION=7.4.5
 
 # Install dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \

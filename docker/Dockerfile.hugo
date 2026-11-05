@@ -11,11 +11,10 @@ FROM ${DEBIAN_IMAGE}
 LABEL maintainer="SSG Benchmark"
 LABEL description="Hugo SSG Benchmark Environment"
 
-# Keep in sync with docker/versions.env. Held below 0.146.0 deliberately:
-# 0.146 removed layouts/_default and renamed layouts/partials -> _partials, so
-# bumping past it means migrating sites/hugo/layouts and scenarios/*/hugo/layouts
-# first. The scenario assertions must pass after any such bump.
-ARG HUGO_VERSION=0.145.0
+# Keep in sync with docker/versions.env. sites/hugo/layouts and
+# scenarios/*/hugo/layouts still use the pre-0.146 _default/partials layout,
+# which this version accepts. The scenario assertions must pass after any bump.
+ARG HUGO_VERSION=0.169.0
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         bash \

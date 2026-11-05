@@ -21,7 +21,7 @@
         {% endfor %}
     {% else %}
         {% set section = get_section(path="posts/_index.md", metadata_only=true) %}
-        {% for page in section.pages | slice(end=10) %}
+        {% for page in section.pages[:10] %}
         <article class="post-summary">
             <h2><a href="{{ page.permalink }}">{{ page.title }}</a></h2>
             {% if page.date %}
