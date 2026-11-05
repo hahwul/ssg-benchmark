@@ -28,7 +28,7 @@ LABEL description="Hwaro SSG benchmark environment"
 
 # Any git ref: a tag (the default, and the only thing the published comparison
 # uses) or a branch such as `main` for the hwaro-main variant.
-ARG HWARO_VERSION=v0.18.1
+ARG HWARO_VERSION=v0.22.1
 
 # Cache key for moving refs. A branch's *contents* change without
 # HWARO_VERSION changing, so once `main` had been built the clone layer below

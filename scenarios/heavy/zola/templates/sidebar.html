@@ -3,7 +3,7 @@
         <h2>Recent Posts</h2>
         {% set posts_section = get_section(path="posts/_index.md") %}
         <ul>
-        {% for post in posts_section.pages | slice(end=10) %}
+        {% for post in posts_section.pages[:10] %}
             <li><a href="{{ post.permalink }}">{{ post.title }}</a></li>
         {% endfor %}
         </ul>

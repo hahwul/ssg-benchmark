@@ -5,7 +5,7 @@ LABEL maintainer="SSG Benchmark"
 LABEL description="Zola SSG benchmark environment"
 
 # Keep in sync with docker/versions.env.
-ARG ZOLA_VERSION=0.22.1
+ARG ZOLA_VERSION=0.23.6
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         bash \
