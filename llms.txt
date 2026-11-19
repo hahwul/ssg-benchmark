@@ -1,0 +1,8 @@
+# SSG Benchmark
+
+> Static Site Generator Build Performance Benchmark Dashboard
+
+## Pages
+
+- [Dashboard](https://hahwul.github.io/ssg-benchmark/): Static Site Generator Build Performance Benchmark
+
